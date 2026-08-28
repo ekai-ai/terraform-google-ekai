@@ -1,0 +1,34 @@
+# Local .terraform directories (provider plugins, module cache)
+**/.terraform/*
+.terraform.lock.hcl
+
+# State files (this repo uses a remote GCS backend — local state should never
+# exist, but ignore it defensively anyway)
+*.tfstate
+*.tfstate.*
+
+# Crash log files
+crash.log
+crash.*.log
+
+# Generated per-env backend config (regenerate with scripts/init-state-backend.sh)
+env/backend-*.tfbackend
+
+# scripts/self-deploy.sh output — generated deployer keys/secrets, never commit
+.self-deploy/
+
+# Override files (local-only resource overrides)
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# tfplan output (terraform plan -out=tfplan)
+*.tfplan
+
+.DS_Store
+
+# NOTE: env/*.tfvars is intentionally NOT ignored — customer.tfvars (the
+# template) and any env/<name>.tfvars you create from it are meant to be
+# tracked. Keep secrets out of tfvars; use secret_value_overrides or edit the
+# app secret directly instead.
