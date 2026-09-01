@@ -170,6 +170,13 @@ locals {
     MINIO_ACCESS_KEY        = var.minio_root_user
     MINIO_SECRET_ACCESS_KEY = var.minio_root_password
     EKAI_BUCKET             = var.minio_default_buckets[0]
+    # The backend's AwsService constructs an @aws-sdk/client-s3 S3Client
+    # unconditionally (used for MinIO too, since MinIO speaks the S3 API) --
+    # the SDK throws "Error: Region is missing" at startup without SOME
+    # value here, even though MinIO itself never checks it. Confirmed live.
+    # Not client-provided: correctness doesn't matter for MinIO, only
+    # presence/format do, so there's nothing for a client to actually set.
+    AWS_REGION = "us-east-1"
   } : {}
 
   # Not one of the app's documented keys — the client's own convenience, so
