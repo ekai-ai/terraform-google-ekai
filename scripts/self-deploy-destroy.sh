@@ -167,12 +167,36 @@ else
 fi
 
 # ── Optional: the deployer Service Account + key ─────────────────────────────
+# Unlike AWS (where the policy documents are separate, reusable objects and
+# only the user + its attachments are removed), GCP granted these 10 roles
+# directly on the PROJECT's IAM policy -- deleting the SA alone leaves all 10
+# as dangling bindings in that policy forever (GCP does not auto-clean them).
+# Remove each binding explicitly first, same role list self-deploy.sh grants.
 echo
 read -rp "Also delete the deployer service account ${SA_EMAIL} and its key? [y/N] " CLEAN_SA
 if [[ "${CLEAN_SA}" =~ ^[Yy]$ ]]; then
+  PROJECT_ROLES=(
+    roles/compute.networkAdmin
+    roles/servicenetworking.networksAdmin
+    roles/container.admin
+    roles/cloudsql.admin
+    roles/dns.admin
+    roles/secretmanager.admin
+    roles/artifactregistry.admin
+    roles/iam.serviceAccountAdmin
+    roles/iam.serviceAccountUser
+    roles/resourcemanager.projectIamAdmin
+  )
+  for ROLE in "${PROJECT_ROLES[@]}"; do
+    gcloud projects remove-iam-policy-binding "${PROJECT_ID}" \
+      --member="serviceAccount:${SA_EMAIL}" \
+      --role="${ROLE}" \
+      --condition=None \
+      --quiet >/dev/null 2>&1 || true
+  done
   gcloud iam service-accounts delete "${SA_EMAIL}" --project="${PROJECT_ID}" --quiet
   rm -f "${KEY_FILE}"
-  echo "  Deleted service account ${SA_EMAIL} and local key file."
+  echo "  Removed ${SA_EMAIL}'s project IAM roles, deleted the service account, and removed the local key file."
 else
   echo "Skipped."
 fi
