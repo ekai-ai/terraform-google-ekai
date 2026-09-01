@@ -26,8 +26,8 @@ cd terraform-google-ekai
 ```
 
 **Required:** edit `env/customer.tfvars` and set at minimum `project_id`,
-`region`, `env`, `dns_zone` before continuing — `self-deploy.sh` will not
-work with the template's placeholder values. Every variable has a full
+`region`, `env`, `dns_zone`, `acme_email` before continuing — `self-deploy.sh`
+will not work with the template's placeholder values. Every variable has a full
 explanation as an inline comment in that file; the ones most worth a second
 look before your first deploy:
 
@@ -37,6 +37,7 @@ look before your first deploy:
 | `region` | GCP region everything is created in |
 | `env` | Unique name embedded in every resource this creates — must be unique per deployment |
 | `dns_zone` | Domain this deploys under (`portal.<dns_zone>`, `argocd.<dns_zone>`, ...) |
+| `acme_email` | Email for Let's Encrypt certificate notifications — cert-manager's ACME account registration fails without a real one |
 
 Full reference (every variable, every default): [ARCHITECTURE.md](ARCHITECTURE.md),
 `variables.tf` and `cicd/variables.tf` — or the Terraform Registry's

@@ -56,6 +56,8 @@ PROJECT_ID=$(grep -E '^project_id\s*=' "${TFVARS}" | head -1 | sed 's/.*=\s*"\(.
 [[ -z "${PROJECT_ID}" || "${PROJECT_ID}" == "REPLACE_ME" ]] && { echo "ERROR: set a real project_id in ${TFVARS} first."; exit 1; }
 REGION=$(grep -E '^region\s*=' "${TFVARS}" | head -1 | sed 's/.*=\s*"\(.*\)".*/\1/')
 [[ -z "${REGION}" ]] && { echo "ERROR: could not read 'region' from ${TFVARS}"; exit 1; }
+ACME_EMAIL=$(grep -E '^acme_email\s*=' "${TFVARS}" | head -1 | sed 's/.*=\s*"\(.*\)".*/\1/')
+[[ -z "${ACME_EMAIL}" || "${ACME_EMAIL}" == "REPLACE_ME" ]] && { echo "ERROR: set a real acme_email in ${TFVARS} first -- cert-manager's Let's Encrypt ACME account registration fails without one."; exit 1; }
 CLUSTER_NAME=$(grep -E '^cluster_name\s*=' "${TFVARS}" | head -1 | sed 's/.*=\s*"\(.*\)".*/\1/')
 
 echo "==> Project: ${PROJECT_ID}"
