@@ -5,31 +5,15 @@ variable "redis_namespace" {
 }
 
 variable "chart_version" {
+  # 24.1.0 matches GCP Knowledge's actual live redis-stack release (verified
+  # via `helm get values`/`MODULE LIST` against a real working environment)
+  # -- this version's Bitnami redis image bundles RediSearch/RedisJSON/
+  # vectorset natively (/opt/bitnami/redis/lib/redis/modules/*.so, auto-loaded
+  # by Bitnami's own entrypoint). See modules/redis/main.tf for why this
+  # replaced the redis/redis-stack-server image-swap approach entirely.
   description = "Bitnami Redis Helm chart version. Pin in prod to avoid surprises."
   type        = string
-  default     = "20.6.2"
-}
-
-# ── Redis Stack image override ────────────────────────────────────────────────
-# Bitnami chart scaffolding + redis/redis-stack-server image for AI/RAG modules
-# (RediSearch, RedisJSON, RedisTimeSeries, RedisBloom).
-
-variable "image_registry" {
-  description = "Container registry for the Redis Stack server image."
-  type        = string
-  default     = "docker.io"
-}
-
-variable "image_repository" {
-  description = "Image repository."
-  type        = string
-  default     = "redis/redis-stack-server"
-}
-
-variable "image_tag" {
-  description = "Redis Stack server image tag. Pin to a specific version in prod."
-  type        = string
-  default     = "7.4.0-v3"
+  default     = "24.1.0"
 }
 
 variable "replica_count" {

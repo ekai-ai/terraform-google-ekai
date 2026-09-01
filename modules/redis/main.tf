@@ -18,35 +18,43 @@ resource "kubernetes_namespace" "redis" {
   }
 }
 
-# ── Helm release — Bitnami Redis chart with Redis Stack image ─────────────────
-# Uses Bitnami's HA scaffolding (master + replicas, persistence, NetworkPolicy,
-# metrics exporter) but swaps the image for `redis/redis-stack-server` which
-# ships RediSearch + RedisJSON + RedisTimeSeries + RedisBloom pre-loaded —
-# needed for AI/RAG workloads (vector similarity, JSON docs, embeddings).
+# ── Helm release — Bitnami Redis chart ────────────────────────────────────────
+# No image override: Bitnami's own redis image (chart 24.1.0+) already
+# bundles RediSearch/RedisJSON/vectorset modules natively -- needed for
+# AI/RAG workloads (vector similarity, JSON docs, embeddings) -- and its
+# entrypoint auto-loads whatever .so files it finds under its own modules
+# directory. An earlier version of this swapped the image for
+# `redis/redis-stack-server` instead, which technically has the same modules
+# but Bitnami's entrypoint doesn't know how to load modules from a foreign
+# image's filesystem layout -- MODULE LIST came back empty despite running
+# that image, breaking every FT.SEARCH-dependent app feature. Confirmed
+# against a real working environment (GCP Knowledge's live redis-stack
+# release: plain bitnami/redis image, chart 24.1.0, MODULE LIST shows
+# search/ReJSON/vectorset all loaded) before making this change.
 resource "helm_release" "redis" {
-  name       = "redis"
+  name = "redis"
+  # Bitnami retired the classic index-based repo (charts.bitnami.com now
+  # redirects to a broadcom.com index whose entries point at this OCI
+  # registry) -- installing via the old "repository + chart" combo makes
+  # Helm try to reinterpret an oci:// URL as a plain tarball URL, failing
+  # with "invalid_reference: invalid tag". Pulling directly via OCI avoids
+  # that translation entirely.
   namespace  = kubernetes_namespace.redis.metadata[0].name
-  repository = "https://charts.bitnami.com/bitnami"
+  repository = "oci://registry-1.docker.io/bitnamicharts"
   chart      = "redis"
   version    = var.chart_version
 
   values = [yamlencode({
-    # Bitnami chart v21+ refuses non-Bitnami images by default — opt out so we
-    # can use the official `redis/redis-stack-server` image.
-    # NOT a security override: disables only the chart-internal image whitelist.
-    global = {
-      security = {
-        allowInsecureImages = true
-      }
-    }
-
     architecture = "replication"
 
+    # Chart 24.1.0's own default image.tag pins a specific Bitnami build
+    # (e.g. 7.4.2-debian-12-r0) that 404s -- same ongoing free-tier tag
+    # pruning pattern hit earlier with redis-exporter. GCP Knowledge's real
+    # working redis-stack release runs bitnami/redis:latest, not a pinned
+    # version; matching that exactly here rather than a versioned tag that
+    # may already be gone by the time this next applies.
     image = {
-      registry   = var.image_registry
-      repository = var.image_repository
-      tag        = var.image_tag
-      pullPolicy = "IfNotPresent"
+      tag = "latest"
     }
 
     # Bitnami's own image bundles these module .so files (confirmed present
