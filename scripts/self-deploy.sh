@@ -171,7 +171,7 @@ echo "──── Step 3/4: State backend ────────────�
 "${SCRIPT_DIR}/init-state-backend.sh" "${ENV}" "${PROJECT_ID}"
 
 BUCKET_FROM_TFVARS=$(grep -E '^state_bucket_name\s*=' "${TFVARS}" | head -1 | sed 's/.*=\s*"\(.*\)".*/\1/')
-BUCKET="${BUCKET_FROM_TFVARS:-ekai-terraform-state-${ENV}}"
+BUCKET="${BUCKET_FROM_TFVARS:-ekai-terraform-state-${ENV}-${PROJECT_ID}}"
 # storage.admin, not just objectAdmin -- self-deploy-destroy.sh's optional
 # cleanup deletes the bucket itself (storage.buckets.delete), which
 # objectAdmin doesn't grant (object-level permissions only).

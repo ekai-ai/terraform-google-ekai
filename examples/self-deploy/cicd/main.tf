@@ -67,6 +67,7 @@ module "cicd" {
   project_id                        = var.project_id
   region                            = var.region
   env                               = var.env
+  state_bucket_name                 = var.state_bucket_name
   secrets_name                      = var.secrets_name
   dns_zone                          = var.dns_zone
   existing_image_registry_base_url  = var.existing_image_registry_base_url

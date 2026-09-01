@@ -51,9 +51,15 @@ variable "cicd_provider" {
   }
 }
 
-variable "argocd_ingress_host" {
-  description = "Hostname for the ArgoCD Ingress (e.g. argocd.dev.example.com)."
+variable "dns_zone" {
+  description = "Base DNS zone for this environment (e.g. dev.example.com) -- derives argocd_ingress_host/minio_host when either is left unset."
   type        = string
+}
+
+variable "argocd_ingress_host" {
+  description = "Hostname for the ArgoCD Ingress. Optional -- defaults to \"argocd.<dns_zone>\" when unset."
+  type        = string
+  default     = null
 }
 
 variable "tls_secret_name" {
@@ -125,9 +131,9 @@ variable "minio_namespace" {
 }
 
 variable "minio_host" {
-  description = "MinIO API hostname e.g. minio.demo.ekai.ai"
+  description = "MinIO API hostname e.g. minio.demo.ekai.ai. Optional -- defaults to \"minio.<dns_zone>\" when unset."
   type        = string
-  default     = ""
+  default     = null
 }
 
 variable "minio_default_buckets" {

@@ -80,6 +80,7 @@ module "platform" {
   project_id                  = var.project_id
   region                      = var.region
   env                         = var.env
+  dns_zone                    = var.dns_zone
   argocd_namespace            = var.argocd_namespace
   argocd_admin_password_hashed = var.argocd_admin_password_hashed
   cicd_provider               = var.cicd_provider

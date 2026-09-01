@@ -51,7 +51,10 @@ subnet_cidr   = "10.20.0.0/20" # primary subnet
 pods_cidr     = "10.28.0.0/16" # secondary range for GKE pods
 services_cidr = "10.29.0.0/20" # secondary range for GKE services (ClusterIP)
 
-state_bucket_name = "ekai-terraform-state-customer" # must be globally unique
+# state_bucket_name intentionally left unset -- scripts/init-state-backend.sh
+# defaults to ekai-terraform-state-<env>-<project_id>, which is globally
+# unique on its own (project_id already is) without you needing to pick a
+# name yourself. Only set state_bucket_name below if you want a different one.
 
 # ─── cluster submodule (GKE + Cloud SQL) ──────────────────────────────────────
 cluster_name = "ekai-customer-gke"
@@ -73,11 +76,11 @@ max_nodes         = 5
 enable_redis_stack = true
 enable_neo4j       = true
 enable_minio       = true
-minio_host         = "minio.customer.ekai.ai"
+# minio_host intentionally left unset -- defaults to "minio.<dns_zone>"
 
 # ─── platform submodule ────────────────────────────────────────────────────────
-argocd_namespace    = "argocd"
-argocd_ingress_host = "argocd.customer.ekai.ai"
+argocd_namespace = "argocd"
+# argocd_ingress_host intentionally left unset -- defaults to "argocd.<dns_zone>"
 # argocd_admin_password_hashed intentionally omitted -- cicd_provider = "none"
 # generates its own ArgoCD admin password + hash directly (platform submodule).
 acme_email      = "REPLACE_ME"

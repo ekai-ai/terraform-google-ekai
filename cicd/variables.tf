@@ -23,6 +23,12 @@ variable "project_id" {
   type        = string
 }
 
+variable "state_bucket_name" {
+  description = "Name of the GCS bucket holding the combined root's Terraform state. Optional -- leave unset and this defaults to ekai-terraform-state-<env>-<project_id>, matching scripts/init-state-backend.sh's own default. Must match whatever state_bucket_name (or its default) the combined root actually used."
+  type        = string
+  default     = ""
+}
+
 variable "region" {
   description = "GCP region (e.g. us-central1)."
   type        = string
@@ -138,8 +144,9 @@ variable "manifest_folder" {
 }
 
 variable "argocd_ingress_host" {
-  description = "ArgoCD server hostname — used by the ArgoCD Terraform provider to connect (e.g. argocd.client1.ekai.ai)."
+  description = "ArgoCD server hostname. Optional -- defaults to \"argocd.<dns_zone>\" when unset."
   type        = string
+  default     = null
 }
 
 variable "github_org" {

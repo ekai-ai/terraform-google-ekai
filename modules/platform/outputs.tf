@@ -22,7 +22,7 @@ output "nginx_ingress_ip" {
 
 output "argocd_ingress_host" {
   description = "ArgoCD ingress hostname (consumed by the argocd provider in ../../cicd/)."
-  value       = var.argocd_ingress_host
+  value       = local.argocd_host
 }
 
 output "minio_endpoint" {

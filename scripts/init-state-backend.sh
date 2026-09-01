@@ -63,13 +63,16 @@ if [[ -z "${REGION}" ]]; then
   exit 1
 fi
 
-# Use state_bucket_name from tfvars if set, otherwise default to env-based name.
+# Use state_bucket_name from tfvars if set, otherwise default to a name that
+# embeds project_id -- project_id is already globally unique in GCP, so this
+# default never collides with anyone else's bucket without you having to
+# pick a name yourself.
 BUCKET_FROM_TFVARS=$(grep -E '^state_bucket_name\s*=' "${TFVARS}" | head -1 | sed 's/.*=\s*"\(.*\)".*/\1/')
 if [[ -n "${BUCKET_FROM_TFVARS}" ]]; then
   BUCKET="${BUCKET_FROM_TFVARS}"
   echo "==> State bucket from tfvars: ${BUCKET}"
 else
-  BUCKET="ekai-terraform-state-${ENV}"
+  BUCKET="ekai-terraform-state-${ENV}-${PROJECT_ID}"
   echo "==> State bucket (default):   ${BUCKET}"
 fi
 echo "==> Project      : ${PROJECT_ID}"

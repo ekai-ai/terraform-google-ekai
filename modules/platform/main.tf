@@ -29,6 +29,9 @@ locals {
   # plan/apply even though the underlying password never changes, making
   # ArgoCD's admin secret look "modified" forever.
   argocd_admin_password_hashed = local.self_service ? terraform_data.argocd_admin_password_hashed[0].output : var.argocd_admin_password_hashed
+
+  argocd_host = coalesce(var.argocd_ingress_host, "argocd.${var.dns_zone}")
+  minio_host  = coalesce(var.minio_host, "minio.${var.dns_zone}")
 }
 
 resource "random_password" "argocd_admin" {
@@ -177,7 +180,7 @@ module "argocd" {
 
   argocd_namespace             = var.argocd_namespace
   argocd_admin_password_hashed = local.argocd_admin_password_hashed
-  argocd_ingress_host          = var.argocd_ingress_host
+  argocd_ingress_host          = local.argocd_host
   tls_secret_name              = var.tls_secret_name
 
   depends_on = [time_sleep.wait_for_alb_cleanup, module.eso]
@@ -390,7 +393,7 @@ resource "kubectl_manifest" "wildcard_cert" {
 resource "google_dns_record_set" "argocd" {
   project      = var.project_id
   managed_zone = "${var.env}-zone"
-  name         = "${var.argocd_ingress_host}."
+  name         = "${local.argocd_host}."
   type         = "A"
   ttl          = 300
   rrdatas      = [data.kubernetes_service.nginx_ingress.status[0].load_balancer[0].ingress[0].ip]
@@ -401,7 +404,7 @@ resource "google_dns_record_set" "minio" {
   count        = var.enable_minio ? 1 : 0
   project      = var.project_id
   managed_zone = "${var.env}-zone"
-  name         = "${var.minio_host}."
+  name         = "${local.minio_host}."
   type         = "A"
   ttl          = 300
   rrdatas      = [data.kubernetes_service.nginx_ingress.status[0].load_balancer[0].ingress[0].ip]
@@ -415,7 +418,7 @@ module "minio" {
   source = "../minio"
 
   minio_namespace  = var.minio_namespace
-  minio_host       = var.minio_host
+  minio_host       = local.minio_host
   tls_secret_name  = var.tls_secret_name
   default_buckets  = var.minio_default_buckets
   persistence_size = var.minio_persistence_size

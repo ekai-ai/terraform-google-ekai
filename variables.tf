@@ -114,8 +114,9 @@ variable "manage_dns_zone" {
 }
 
 variable "state_bucket_name" {
-  description = "Globally unique name for the GCS bucket that stores Terraform state (created by scripts/init-state-backend.sh, outside Terraform)."
+  description = "Name of the GCS bucket that stores Terraform state (created by scripts/init-state-backend.sh, outside Terraform). Optional -- leave unset and the scripts default to ekai-terraform-state-<env>-<project_id>, which is globally unique on its own since project_id already is. Only set this to use a different bucket name."
   type        = string
+  default     = ""
 }
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -210,8 +211,9 @@ variable "argocd_admin_password_hashed" {
 }
 
 variable "argocd_ingress_host" {
-  description = "Hostname for the ArgoCD Ingress (e.g. argocd.client1.ekai.ai)."
+  description = "Hostname for the ArgoCD Ingress. Optional -- defaults to \"argocd.<dns_zone>\" when unset."
   type        = string
+  default     = null
 }
 
 variable "tls_secret_name" {
@@ -281,9 +283,9 @@ variable "minio_namespace" {
 }
 
 variable "minio_host" {
-  description = "MinIO API hostname e.g. minio.demo.ekai.ai"
+  description = "MinIO API hostname e.g. minio.demo.ekai.ai. Optional -- defaults to \"minio.<dns_zone>\" when unset."
   type        = string
-  default     = ""
+  default     = null
 }
 
 variable "minio_default_buckets" {
