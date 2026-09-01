@@ -19,21 +19,16 @@ This file is about identity 1 only, traced against every `gcloud` call both
 scripts actually make (not identity 2's, which is self-contained in the
 roles above).
 
-## Why this is less narrowly scopable than AWS
+## Why this can't be scoped any narrower
 
-AWS's equivalent doc ([the AWS distribution's PERMISSIONS.md](https://github.com/ekai-ai/terraform-aws-ekai/blob/main/PERMISSIONS.md))
-scopes the bootstrapping identity down to managing two specific,
-pre-authored IAM policy documents by name. GCP's model doesn't have a direct
-equivalent: granting a project-level predefined role to a Service Account
-(`gcloud projects add-iam-policy-binding --role=roles/X`) is a single
-action requiring the single project-wide permission
-`resourcemanager.projects.setIamPolicy` — GCP has no built-in way to scope
-that permission down to "only these specific roles." So while the
-bootstrapping identity is nowhere near full Owner/Editor, it does need
-`resourcemanager.projectIamAdmin`, which — inherently, not through any
-choice made here — could also be used to grant broader roles to other
-principals. Predefined roles below; if your org uses custom roles instead,
-match these permissions.
+Granting a project-level role to a Service Account
+(`gcloud projects add-iam-policy-binding --role=roles/X`) needs the single
+project-wide permission `resourcemanager.projects.setIamPolicy` — GCP has
+no built-in way to restrict that to "only these specific roles." So while
+the bootstrapping identity is nowhere near full Owner/Editor, it does need
+`resourcemanager.projectIamAdmin`, which could technically also grant
+broader roles to other principals. Predefined roles below; if your org uses
+custom roles instead, match these permissions.
 
 ```
 roles/serviceusage.serviceUsageAdmin      # enable the required GCP APIs
