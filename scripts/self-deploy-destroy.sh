@@ -93,10 +93,31 @@ if [[ ! -f "${KEY_FILE}" ]]; then
   chmod 600 "${KEY_FILE}"
 fi
 
+# Captured before anything switches it -- see the cleanup_all trap below for why.
+ORIGINAL_ACCOUNT=$(gcloud config get-value account 2>/dev/null)
+
 export GOOGLE_APPLICATION_CREDENTIALS="${KEY_FILE}"
 echo "==> Activating deployer identity..."
 gcloud auth activate-service-account "${SA_EMAIL}" --key-file="${KEY_FILE}"
 gcloud config set project "${PROJECT_ID}" >/dev/null
+
+# One combined trap, armed for the rest of the script (never cleared early) --
+# gcloud auth activate-service-account persists across separate invocations
+# (unlike AWS's env-var credentials, which reset per shell), so without
+# this, a script that dies partway (e.g. a failed terraform destroy) leaves
+# gcloud silently stuck on the narrowly-scoped deployer SA for every future
+# gcloud command, including the next run of this same script. Killing an
+# already-exited PF_PID is harmless, so this stays safe to leave armed even
+# once the port-forward is no longer needed.
+PF_PID=""
+cleanup_all() {
+  [[ -n "${PF_PID}" ]] && kill "${PF_PID}" >/dev/null 2>&1
+  if [[ -n "${ORIGINAL_ACCOUNT}" ]]; then
+    gcloud config set account "${ORIGINAL_ACCOUNT}" >/dev/null 2>&1
+  fi
+  true
+}
+trap cleanup_all EXIT
 
 # ── 1. Terraform destroy — examples/self-deploy/cicd FIRST ───────────────────
 # Must run while the root config's cluster/ArgoCD are still live — cicd's
@@ -107,12 +128,9 @@ gcloud config set project "${PROJECT_ID}" >/dev/null
 echo
 echo "════════ terraform destroy (cicd) ════════"
 echo "==> Fetching cluster credentials for port-forward..."
-PF_PID=""
 if gcloud container clusters get-credentials "${CLUSTER_NAME}" --region "${REGION}" --project "${PROJECT_ID}" 2>/dev/null; then
   kubectl port-forward svc/argocd-server -n argocd 8080:80 >/dev/null 2>&1 &
   PF_PID=$!
-  cleanup_pf() { kill "${PF_PID}" >/dev/null 2>&1 || true; }
-  trap cleanup_pf EXIT
 
   echo "==> Waiting for ArgoCD port-forward to be ready..."
   for i in $(seq 1 20); do
@@ -128,8 +146,8 @@ terraform init -upgrade -reconfigure -backend-config="../../../env/backend-${ENV
 terraform destroy -auto-approve -compact-warnings -var-file="../../../env/${ENV}.tfvars"
 
 if [[ -n "${PF_PID}" ]]; then
-  cleanup_pf
-  trap - EXIT
+  kill "${PF_PID}" >/dev/null 2>&1 || true
+  PF_PID=""
 fi
 
 echo

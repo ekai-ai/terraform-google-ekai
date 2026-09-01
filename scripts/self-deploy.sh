@@ -60,9 +60,16 @@ ACME_EMAIL=$(grep -E '^acme_email\s*=' "${TFVARS}" | head -1 | sed 's/.*=\s*"\(.
 [[ -z "${ACME_EMAIL}" || "${ACME_EMAIL}" == "REPLACE_ME" ]] && { echo "ERROR: set a real acme_email in ${TFVARS} first -- cert-manager's Let's Encrypt ACME account registration fails without one."; exit 1; }
 CLUSTER_NAME=$(grep -E '^cluster_name\s*=' "${TFVARS}" | head -1 | sed 's/.*=\s*"\(.*\)".*/\1/')
 
+# Captured before anything switches it -- gcloud auth activate-service-account
+# below persists across separate script invocations (unlike AWS's env-var
+# credentials, which reset per shell), so without saving and restoring this,
+# a second run of this script starts already authenticated as the narrowly-
+# scoped deployer SA from the previous run instead of your own admin identity.
+ORIGINAL_ACCOUNT=$(gcloud config get-value account 2>/dev/null)
+
 echo "==> Project: ${PROJECT_ID}"
 echo "==> Region:  ${REGION}"
-echo "==> Currently authenticated as: $(gcloud config get-value account 2>/dev/null)"
+echo "==> Currently authenticated as: ${ORIGINAL_ACCOUNT}"
 echo "    (this identity needs project-admin rights to run this script —"
 echo "     it is NOT the identity Terraform will use)"
 echo
@@ -226,6 +233,17 @@ echo "==> Activating deployer identity for gcloud/kubectl calls..."
 gcloud auth activate-service-account "${SA_EMAIL}" --key-file="${KEY_FILE}"
 gcloud config set project "${PROJECT_ID}" >/dev/null
 
+# Restore whatever identity was active before the line above, no matter how
+# this script exits (success, error, Ctrl-C) -- gcloud auth
+# activate-service-account persists across separate invocations (unlike AWS's
+# env-var credentials, which reset per shell), so without this, a script that
+# dies partway (e.g. a failed terraform apply) leaves gcloud silently stuck
+# on the narrowly-scoped deployer SA for every future gcloud command,
+# including the next run of this same script.
+if [[ -n "${ORIGINAL_ACCOUNT}" ]]; then
+  trap 'gcloud config set account "${ORIGINAL_ACCOUNT}" >/dev/null 2>&1 || true' EXIT
+fi
+
 echo "==> Waiting for the new key to propagate..."
 for i in $(seq 1 20); do
   if gcloud projects describe "${PROJECT_ID}" >/dev/null 2>&1; then
@@ -264,7 +282,15 @@ gcloud container clusters get-credentials "${CLUSTER_NAME}" --region "${REGION}"
 
 kubectl port-forward svc/argocd-server -n argocd 8080:80 >/dev/null 2>&1 &
 PF_PID=$!
-cleanup_pf() { kill "${PF_PID}" >/dev/null 2>&1 || true; }
+# One combined trap -- a second `trap ... EXIT` replaces the first rather
+# than stacking, so the account-restore trap set right after activating the
+# deployer SA would otherwise silently stop firing once this trap is set.
+cleanup_pf() {
+  kill "${PF_PID}" >/dev/null 2>&1 || true
+  if [[ -n "${ORIGINAL_ACCOUNT}" ]]; then
+    gcloud config set account "${ORIGINAL_ACCOUNT}" >/dev/null 2>&1 || true
+  fi
+}
 trap cleanup_pf EXIT
 
 echo "==> Waiting for ArgoCD port-forward to be ready..."
@@ -282,6 +308,7 @@ terraform apply -auto-approve -compact-warnings -var-file="../../../env/${ENV}.t
 
 cleanup_pf
 trap - EXIT
+echo "==> Restored your original gcloud identity (${ORIGINAL_ACCOUNT})."
 
 echo
 echo "✓ Deploy complete for env=${ENV}."
