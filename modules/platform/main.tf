@@ -379,8 +379,8 @@ resource "kubectl_manifest" "wildcard_cert" {
         kind = "ClusterIssuer"
       }
       dnsNames = [
-        "*.${var.env}.ekai.ai",
-        "${var.env}.ekai.ai",
+        "*.${var.dns_zone}",
+        var.dns_zone,
       ]
     }
   })

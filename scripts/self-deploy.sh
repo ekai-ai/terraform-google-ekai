@@ -23,7 +23,7 @@
 # directly in Terraform — no master secret, no password prompts here.
 #
 # Requires: gcloud (authenticated with a project-admin identity), kubectl,
-#           jq, curl, terraform.
+#           jq, curl, dig, terraform.
 # ──────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
 
@@ -43,7 +43,7 @@ if [[ ! -f "${TFVARS}" ]]; then
   exit 1
 fi
 
-for bin in gcloud kubectl jq curl terraform; do
+for bin in gcloud kubectl jq curl dig terraform; do
   command -v "$bin" >/dev/null 2>&1 || { echo "ERROR: '$bin' is required but not installed."; exit 1; }
 done
 
@@ -266,6 +266,47 @@ echo "════════ terraform apply (bootstrap + cluster + platform) 
 cd "${REPO_ROOT}/examples/self-deploy/root"
 terraform init -upgrade -reconfigure -backend-config="../../../env/backend-${ENV}.tfbackend"
 terraform apply -auto-approve -compact-warnings -var-file="../../../env/${ENV}.tfvars"
+
+# ── DNS delegation — only when Terraform just created a NEW Cloud DNS zone.
+# Delegating dns_zone to Google's nameservers at your registrar/parent zone
+# is out-of-band and human-timed -- Terraform has no access to do it for you.
+# Until it's done, cert-manager's ACME DNS-01 challenge for the wildcard TLS
+# cert can never succeed (Let's Encrypt can't find the zone via public DNS to
+# verify the challenge record), even though the apply above still succeeds --
+# the Certificate resource just sits at READY=False indefinitely. Confirmed
+# live: this exact scenario left ArgoCD reachable but serving an invalid
+# cert (browser "connection is not private").
+MANAGE_DNS_ZONE=$(grep -E '^manage_dns_zone\s*=' "${TFVARS}" | head -1 | sed 's/.*=\s*\(true\|false\).*/\1/')
+if [[ "${MANAGE_DNS_ZONE}" == "true" ]]; then
+  DNS_ZONE=$(grep -E '^dns_zone\s*=' "${TFVARS}" | head -1 | sed 's/.*=\s*"\(.*\)".*/\1/')
+  ZONE_NS=$(terraform output -json name_servers 2>/dev/null | jq -r '.[]' | sort)
+  if [[ -n "${ZONE_NS}" ]]; then
+    echo
+    echo "════════ DNS delegation required ════════"
+    echo "Terraform just created a Cloud DNS zone for ${DNS_ZONE}. Add an NS"
+    echo "record for ${DNS_ZONE} at your domain registrar (or your parent DNS"
+    echo "zone) pointing at each of these nameservers:"
+    echo "${ZONE_NS}" | sed 's/^/  /'
+    echo
+    read -rp "Press Enter once you've added it (Ctrl-C to do this later and re-run) " _
+    echo "==> Checking DNS delegation (this can take several minutes to propagate)..."
+    for i in $(seq 1 40); do
+      RESOLVED=$(dig +short NS "${DNS_ZONE}" @8.8.8.8 2>/dev/null | sed 's/\.$//' | sort)
+      if [[ -n "${RESOLVED}" && "${RESOLVED}" == "${ZONE_NS}" ]]; then
+        echo "✓ DNS delegation confirmed."
+        break
+      fi
+      echo "  Not propagated yet (attempt ${i}/40) — waiting 15s..."
+      sleep 15
+    done
+    if [[ "${RESOLVED}" != "${ZONE_NS}" ]]; then
+      echo "⚠ Still not resolving after 10 minutes — the ArgoCD/app TLS cert"
+      echo "  will keep failing until this delegation is correct. cert-manager"
+      echo "  retries automatically in the background once it is; no need to"
+      echo "  re-run this script for that."
+    fi
+  fi
+fi
 
 # ── cicd — needs a port-forward to ArgoCD's Service (see cicd/providers.tf:
 # server_addr = "localhost:8080"). Kept this way deliberately for self-deploy
