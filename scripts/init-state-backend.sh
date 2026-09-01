@@ -67,7 +67,10 @@ fi
 # embeds project_id -- project_id is already globally unique in GCP, so this
 # default never collides with anyone else's bucket without you having to
 # pick a name yourself.
-BUCKET_FROM_TFVARS=$(grep -E '^state_bucket_name\s*=' "${TFVARS}" | head -1 | sed 's/.*=\s*"\(.*\)".*/\1/')
+# `|| true` -- grep exits 1 (not an error, just "no match") when
+# state_bucket_name is commented out entirely, which under `set -euo
+# pipefail` would otherwise kill the script right here with no error message.
+BUCKET_FROM_TFVARS=$(grep -E '^state_bucket_name\s*=' "${TFVARS}" | head -1 | sed 's/.*=\s*"\(.*\)".*/\1/' || true)
 if [[ -n "${BUCKET_FROM_TFVARS}" ]]; then
   BUCKET="${BUCKET_FROM_TFVARS}"
   echo "==> State bucket from tfvars: ${BUCKET}"
