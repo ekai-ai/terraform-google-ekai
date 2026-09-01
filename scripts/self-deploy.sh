@@ -172,10 +172,13 @@ echo "──── Step 3/4: State backend ────────────�
 
 BUCKET_FROM_TFVARS=$(grep -E '^state_bucket_name\s*=' "${TFVARS}" | head -1 | sed 's/.*=\s*"\(.*\)".*/\1/')
 BUCKET="${BUCKET_FROM_TFVARS:-ekai-terraform-state-${ENV}}"
-echo "==> Granting ${SA_EMAIL} object access on gs://${BUCKET}..."
+# storage.admin, not just objectAdmin -- self-deploy-destroy.sh's optional
+# cleanup deletes the bucket itself (storage.buckets.delete), which
+# objectAdmin doesn't grant (object-level permissions only).
+echo "==> Granting ${SA_EMAIL} bucket admin on gs://${BUCKET}..."
 gcloud storage buckets add-iam-policy-binding "gs://${BUCKET}" \
   --member="serviceAccount:${SA_EMAIL}" \
-  --role="roles/storage.objectAdmin" \
+  --role="roles/storage.admin" \
   --quiet >/dev/null
 echo "✓ State bucket access granted."
 echo

@@ -10,11 +10,9 @@ applies, the module layout, the Terraform Registry option), see
 
 ## Prerequisites
 
-- A GCP project you have admin rights in (to bootstrap the scoped deployer
-  Service Account Terraform actually runs as — see Step 2 of
-  `scripts/self-deploy.sh`)
 - [gcloud CLI](https://cloud.google.com/sdk/docs/install), authenticated
-  (`gcloud auth login`) with that admin identity
+  (`gcloud auth login`) — see [PERMISSIONS.md](PERMISSIONS.md) for exactly
+  what this identity needs
 - [Terraform](https://developer.hashicorp.com/terraform/install) >= 1.5
 - `kubectl`, `jq`, `curl`
 - A domain you can either delegate a subdomain of to Cloud DNS, or that
@@ -39,16 +37,10 @@ look before your first deploy:
 | `region` | GCP region everything is created in |
 | `env` | Unique name embedded in every resource this creates — must be unique per deployment |
 | `dns_zone` | Domain this deploys under (`portal.<dns_zone>`, `argocd.<dns_zone>`, ...) |
-| `manage_dns_zone` | `true` if Terraform should create the Cloud DNS zone |
-| `node_machine_type` / `min_nodes` / `max_nodes` | Worker node size/count — GKE autoscales natively between `min_nodes`/`max_nodes`, no separate autoscaler to install |
-| `db_instance_tier` | Cloud SQL sizing |
-| `enable_redis_stack` / `enable_neo4j` / `enable_minio` | Must all be `true` — the app's ERD/KEDA/file-storage needs all three |
-| `existing_image_registry_base_url` | Where the app's container images are pulled from |
-| `helm_chart_repo_url` / `helm_chart_version` | Where the `ekai-saas` Helm chart itself comes from |
 
-Full reference (every variable, every default): `variables.tf` and
-`cicd/variables.tf` — or the Terraform Registry's auto-generated Inputs
-page once this is published there (see [ARCHITECTURE.md](ARCHITECTURE.md)).
+Full reference (every variable, every default): [ARCHITECTURE.md](ARCHITECTURE.md),
+`variables.tf` and `cicd/variables.tf` — or the Terraform Registry's
+auto-generated Inputs page once this is published there.
 
 ```bash
 ./scripts/self-deploy.sh customer

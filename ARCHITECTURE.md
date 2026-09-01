@@ -143,3 +143,108 @@ value — they're Ekai-internal deployment paths, not documented or supported
 for client use, but weren't stripped out during the port. Don't rely on
 them without reading `modules/cicd/main.tf` and the Ekai-internal
 `gcp-terraform` source they were ported from.
+
+## Variable reference
+
+Every variable in `variables.tf` and `cicd/variables.tf` — the README's
+table only covers the handful worth a second look. `project_id`/`region`/
+`env`/`secrets_name`/`cicd_provider` are declared in both files identically
+(see "Shared across layers" below); everything else lives in only one.
+
+### Shared across layers (`variables.tf` and `cicd/variables.tf`)
+
+| Variable | Default | What it controls |
+|---|---|---|
+| `project_id` | — (required) | GCP project ID that owns all resources |
+| `region` | — (required) | GCP region — must match the state bucket location |
+| `env` | — (required) | Environment name (e.g. `client1`, `dev`, `prod`) — used in resource naming and state prefixes |
+| `secrets_name` | `""` | Legacy master-secret name; ignored when `cicd_provider = "none"` |
+| `cicd_provider` | `"none"` | `"none"` (supported) / `"cloud_build"` / `"github_actions"` (included and functional, but not documented for client use — see Scope above) |
+
+### Bootstrap submodule (Cloud DNS zone + VPC)
+
+| Variable | Default | What it controls |
+|---|---|---|
+| `vpc_name` | `"vpc"` | Base VPC name (prefixed with `env`) |
+| `subnet_cidr` | — (required) | Primary CIDR for the private subnet |
+| `pods_cidr` | — (required) | Secondary CIDR for GKE pods |
+| `services_cidr` | — (required) | Secondary CIDR for GKE services |
+| `dns_zone` | — (required) | Domain this deploys under, e.g. `client1.ekai.ai` |
+| `manage_dns_zone` | `true` | Terraform creates the Cloud DNS zone; `false` to look up an existing one |
+| `state_bucket_name` | — (required) | Globally unique GCS bucket name for Terraform state — created by `scripts/init-state-backend.sh`, outside Terraform |
+
+### Cluster submodule (GKE + Cloud SQL + Artifact Registry)
+
+| Variable | Default | What it controls |
+|---|---|---|
+| `cluster_name` | — (required) | GKE cluster name |
+| `node_machine_type` | `"e2-standard-4"` | Compute Engine machine type for cluster nodes |
+| `min_nodes` / `max_nodes` | `1` / `5` | Node pool floor/ceiling per zone — GKE autoscales natively between them |
+| `k8s_version` | `""` → GKE latest stable | Kubernetes version prefix (e.g. `1.35`) |
+| `db_instance_tier` | `"db-custom-2-7680"` | Cloud SQL machine type |
+| `db_version` | `"15"` | PostgreSQL major version |
+| `master_ipv4_cidr_block` | `"172.16.0.0/28"` | CIDR for the GKE control plane private endpoint — must not overlap the VPC/subnet CIDRs |
+| `cloudbuild_sa_email` | `""` → auto-computed | Cloud Build SA email for Artifact Registry writer access |
+| `pipelines` | — (required) | Map of service CI/CD pipeline definitions |
+
+### Platform submodule (ingress-nginx, ESO, ArgoCD, KEDA, Reloader, cert-manager, Redis, Neo4j, MinIO, ECR pull auth)
+
+| Variable | Default | What it controls |
+|---|---|---|
+| `argocd_namespace` | `"argocd"` | ArgoCD's namespace |
+| `argocd_admin_password_hashed` | `""` | Bcrypt hash; ignored for self-service (generated directly instead) |
+| `argocd_ingress_host` | — (required) | ArgoCD's hostname, e.g. `argocd.client1.ekai.ai` |
+| `tls_secret_name` | `"wildcard-tls"` | K8s TLS Secret used by ArgoCD and other Ingresses (cert-manager or pre-provisioned) |
+| `nginx_ingress_chart_version` | `"4.10.1"` | ingress-nginx chart version |
+| `eso_chart_version` | `"0.10.3"` | External Secrets Operator chart version |
+| `argocd_chart_version` | `""` → latest | argo-cd chart version |
+| `keda_chart_version` | `"2.16.0"` | KEDA chart version |
+| `reloader_chart_version` | `"1.2.0"` | Stakater Reloader chart version — restarts pods when K8s Secrets change |
+| `cert_manager_chart_version` | `"v1.14.5"` | cert-manager chart version |
+| `enable_cert_manager` | `true` | Deploy cert-manager for GKE TLS — set `false` if TLS is handled externally |
+| `cert_manager_sa_id` | `""` | Service account ID for cert-manager Workload Identity — override per-env in shared projects |
+| `acme_email` | `"umar@ekai.ai"` | Email for Let's Encrypt certificate notifications — **override this** |
+| `enable_redis_stack` | `false` | Deploy Redis Stack (Bitnami chart) in-cluster — the app's ERD/KEDA features need it |
+| `redis_namespace` / `redis_storage_size` / `redis_storage_class` | `"redis"` / `"10Gi"` / `"standard-rwo"` | Redis namespace and PVC sizing |
+| `redis_password` | `""` | Redis password override |
+| `enable_neo4j` | `false` | Deploy Neo4j community edition in-cluster — the app's ERD features need it |
+| `neo4j_namespace` / `neo4j_storage_size` / `neo4j_storage_class` | `"neo4j"` / `"20Gi"` / `"standard-rwo"` | Neo4j namespace and PVC sizing |
+| `neo4j_memory_request` / `neo4j_memory_limit` | `"2Gi"` / `"4Gi"` | Neo4j pod memory sizing |
+| `enable_minio` | `false` | Deploy in-cluster MinIO — self-service always needs this (no native GCS storage path in the app) |
+| `minio_namespace` | `"minio"` | MinIO namespace |
+| `minio_host` | `""` | MinIO API hostname, e.g. `minio.demo.ekai.ai` |
+| `minio_default_buckets` | `["ekai-files"]` | Buckets MinIO creates on first boot |
+| `minio_persistence_size` / `minio_storage_class` / `minio_replicas` | `"20Gi"` / `"standard-rwo"` / `1` | MinIO PVC sizing and replica count |
+| `enable_ecr_pull_auth` | `false` | Deploy the CronJob that lets GKE pull images from AWS ECR — requires the 3 vars below |
+| `ecr_credentials_secret_name` | — (required) | Secret name the CronJob writes ECR credentials into |
+| `aws_account_id` / `aws_ecr_region` | `""` / `"us-east-1"` | AWS account + region owning the ECR registry — required when `enable_ecr_pull_auth = true` |
+| `aws_ecr_access_key_id` / `aws_ecr_secret_access_key` | `""` / `""` | AWS credentials for ECR pull — sensitive, never commit to tfvars |
+| `ecr_namespace` | `"ekai-saas"` | Namespace where the ECR pull secret and CronJob are created |
+
+### `cicd/variables.tf` — self-service app config
+
+| Variable | Default | What it controls |
+|---|---|---|
+| `dns_zone` | `""` | Base DNS zone (self-service only) — derives service hostnames and `FRONTEND_URL` |
+| `existing_image_registry_base_url` | `""` | Where container images are pulled from (self-service only) |
+| `helm_chart_repo_url` | `""` | OCI registry the `ekai-saas` chart is published to — bare host+path, no `oci://` prefix |
+| `helm_chart_version` | `"*"` | Chart version — `"*"` auto-tracks latest via ArgoCD, no apply needed per release |
+| `image_tag` | `""` | Image tag deployed — passed through as the chart's `imageTag` |
+| `erd_storage_class` | `"standard-rwo"` | StorageClass for ERD's workspace PVC |
+| `ingress_class_name` | `"nginx"` | Ingress controller class for the chart |
+| `tls_secret_name` | `"wildcard-tls"` | TLS Secret the chart's Ingress references — matches the combined root's cert-manager wildcard cert |
+| `claude_model` | `"claude-haiku-4-5-20251001"` | Claude model the semantics service uses |
+| `vector_embedding_model` | `"text-embedding-3-small"` | OpenAI embedding model for vector search |
+| `vector_embedding_batch_size` | `100` | Batch size for embedding generation |
+| `secret_value_overrides` | `{}` | Escape hatch for any app-secret key with no dedicated variable — wins on conflicts |
+| `manifest_folder` | `"manifest-files"` | Folder in the `deployment-files` repo where ArgoCD reads K8s manifests |
+| `ekai_namespace` | — (required) | Kubernetes namespace for the app's services |
+| `dns_zone_name` | — (required) | Cloud DNS managed zone *name* (not the DNS name itself) — used for service A records |
+| `cluster_name` | `"ekai-gke"` | GKE cluster name — queries the cluster endpoint directly from the GKE API in `providers.tf` |
+
+### `cicd/variables.tf` — not functional in this distribution
+
+Read only when `cicd_provider != "none"` (self-service has no default and
+doesn't need to set these): `cd_branch`, `github_org`. `pipelines` and
+`argocd_ingress_host` are declared here too but are shared/required — see
+above.
