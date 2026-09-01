@@ -279,7 +279,11 @@ terraform apply -auto-approve -compact-warnings -var-file="../../../env/${ENV}.t
 MANAGE_DNS_ZONE=$(grep -E '^manage_dns_zone\s*=' "${TFVARS}" | head -1 | sed 's/.*=\s*\(true\|false\).*/\1/')
 if [[ "${MANAGE_DNS_ZONE}" == "true" ]]; then
   DNS_ZONE=$(grep -E '^dns_zone\s*=' "${TFVARS}" | head -1 | sed 's/.*=\s*"\(.*\)".*/\1/')
-  ZONE_NS=$(terraform output -json name_servers 2>/dev/null | jq -r '.[]' | sort)
+  # Strip trailing dots -- GCP's API returns FQDNs with them
+  # (ns-cloud-d1.googledomains.com.), so without this every comparison
+  # against dig's own trailing-dot-stripped output below would falsely
+  # report "not propagated" even once delegation is already correct.
+  ZONE_NS=$(terraform output -json name_servers 2>/dev/null | jq -r '.[]' | sed 's/\.$//' | sort)
   if [[ -n "${ZONE_NS}" ]]; then
     echo
     echo "════════ DNS delegation required ════════"
