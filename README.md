@@ -60,36 +60,28 @@ after one confirmation (it creates real, billable GCP resources).
 ## After a successful deploy
 
 The app secret (`ekai-<env>` in Secret Manager, e.g. `ekai-customer`) ships
-with several `REPLACE_ME` placeholders the app needs real values for. Fill
-them in with one command — replace the `...` values below with real ones (an
-AWS IAM user with SES send access is enough — self-service uses in-cluster
-MinIO for file storage, so no S3 access is needed on that IAM user):
+with a `REPLACE_ME` placeholder for the one thing the app needs a real value
+for out of the box: AWS SES credentials for signup invite emails (used
+regardless of which cloud hosts the cluster). Fill them in with one command
+— replace the `...` values below with real ones (an AWS IAM user with SES
+send access is enough — self-service uses in-cluster MinIO for file storage,
+so no S3 access is needed on that IAM user):
 
 ```bash
 gcloud secrets versions access latest --secret=ekai-customer --project=<your-project> | jq '
-    .ANTHROPIC_API_KEY = "sk-ant-..." |
-    .OPENAI_API_KEY = "sk-..." |
-    .COGNITO_REGION = "..." |
-    .COGNITO_USER_POOL_ID = "..." |
-    .COGNITO_CLIENT_ID = "..." |
     .AWS_ACCESS_KEY_ID = "..." |
     .AWS_SECRET_ACCESS_KEY = "..." |
     .SES_AWS_REGION = "..." |
-    .AWS_SES_FROM_EMAIL = "..." |
-    .SEMANTICS__GOOGLE_CLOUD_PROJECT = "..." |
-    .SEMANTICS__GCS_DOCAI_PROCESSOR_ID = "..." |
-    .SEMANTICS__GCS_INPUT_BUCKET = "..." |
-    .SEMANTICS__GCS_OUTPUT_BUCKET = "..."
+    .AWS_SES_FROM_EMAIL = "..."
   ' | gcloud secrets versions add ekai-customer --project=<your-project> --data-file=-
 ```
 
-Only `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`/`SES_AWS_REGION`/
-`AWS_SES_FROM_EMAIL` are needed to unblock the invite-email flow (the app
-sends signup invites via AWS SES regardless of which cloud hosts the
-cluster); the rest can stay `REPLACE_ME` until you need those specific
-features. The app picks up the new secret automatically within about a
-minute (ESO syncs it into the cluster, Reloader restarts the affected pods)
-— no `terraform apply` needed for this step.
+LLM keys (`ANTHROPIC_API_KEY`/`OPENAI_API_KEY`), Cognito, and Document AI
+(`SEMANTICS__*`) ship blank — out of scope for this pass, same as GitHub sync
+and Langfuse tracing. Set them the same way, via `gcloud secrets versions
+add`, if/when you need those features. The app picks up any secret update
+automatically within about a minute (ESO syncs it into the cluster, Reloader
+restarts the affected pods) — no `terraform apply` needed for this step.
 
 Optional — check the ArgoCD URL/password, Cloud DNS nameservers, portal URL,
 and app secret's name:

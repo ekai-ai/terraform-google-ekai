@@ -121,14 +121,14 @@ data "kubernetes_namespace" "ekai_saas" {
 # JSON before terraform apply. Every value Terraform can know for certain
 # (Cloud SQL/Redis/Neo4j/MinIO creds, service URLs derived from dns_zone,
 # freshly generated crypto keys, safe non-secret defaults) is filled in for
-# real. Only values that genuinely require the client's own external
-# accounts (LLM API keys, Cognito, GitHub App, Document AI) are left as
-# "REPLACE_ME". Update those after apply with:
+# real. LLM keys/Cognito/GitHub App/Document AI are left blank ("") — out of
+# scope for this pass, same as GitHub sync/Langfuse tracing above. The only
+# values that genuinely require the client's own external account and are
+# needed for the app to function out of the box are AWS SES creds (signup
+# invite emails). Update those after apply with:
 #   gcloud secrets versions access latest --secret=ekai-<env> --project=<project> \
-#     | jq '.ANTHROPIC_API_KEY = "sk-ant-..." | .OPENAI_API_KEY = "sk-..." |
-#           .COGNITO_REGION = "..." | .COGNITO_USER_POOL_ID = "..." | .COGNITO_CLIENT_ID = "..." |
-#           .SEMANTICS__GOOGLE_CLOUD_PROJECT = "..." | .SEMANTICS__GCS_DOCAI_PROCESSOR_ID = "..." |
-#           .SEMANTICS__GCS_INPUT_BUCKET = "..." | .SEMANTICS__GCS_OUTPUT_BUCKET = "..."' \
+#     | jq '.AWS_ACCESS_KEY_ID = "..." | .AWS_SECRET_ACCESS_KEY = "..." |
+#           .SES_AWS_REGION = "..." | .AWS_SES_FROM_EMAIL = "..."' \
 #     | gcloud secrets versions add ekai-<env> --project=<project> --data-file=-
 # lifecycle.ignore_changes means Terraform only sets this content once, at
 # creation — it never overwrites whatever the client puts there afterward.
@@ -149,13 +149,11 @@ resource "random_id" "fernet_key" {
 
 locals {
   # Matches the real, verified secret shape — DATABASE_URL for backend's own
-  # database, VECTOR_DATABASE_URL for semantics' (same Cloud SQL instance,
-  # separate database + user). self_service: the cluster submodule generates
-  # these directly (module.cloud_sql's self_service branch) and exports them
-  # via the combined root state — no master secret involved at all.
+  # database. self_service: the cluster submodule generates these directly
+  # (module.cloud_sql's self_service branch) and exports them via the
+  # combined root state — no master secret involved at all.
   generated_db_urls = local.self_service ? {
-    DATABASE_URL        = "postgresql://${var.backend_db_username}:${var.backend_db_password}@${var.cloud_sql_ip}:5432/${var.backend_db_name}"
-    VECTOR_DATABASE_URL = "postgresql://${var.semantics_db_username}:${var.semantics_db_password}@${var.cloud_sql_ip}:5432/${var.semantics_db_name}"
+    DATABASE_URL = "postgresql://${var.backend_db_username}:${var.backend_db_password}@${var.cloud_sql_ip}:5432/${var.backend_db_name}"
   } : {}
 
   generated_redis_creds = local.self_service ? var.redis_credentials : {}
@@ -188,13 +186,12 @@ locals {
     ARGOCD_PASSWORD = local.argocd_admin_password
   } : {}
 
-  # AI_CORE_*/SEMANTICS_API_BASE are called by the BACKEND pod itself,
-  # server-to-server -- pointing these at the public Ingress hostname sends
-  # the backend's own traffic out through the internet-facing LB and back in
-  # (LB hairpin routing), same class of bug as the FRONTEND__ URLs below.
-  # These are the in-cluster Service DNS names instead. Ports match the
-  # chart's values.yaml containerPort defaults (backend:3000, semantics:8000,
-  # profile:9002, erd.api:9002).
+  # AI_CORE_ENDPOINT is called by the BACKEND pod itself, server-to-server --
+  # pointing it at the public Ingress hostname sends the backend's own
+  # traffic out through the internet-facing LB and back in (LB hairpin
+  # routing), same class of bug as the FRONTEND__ URLs below. This is the
+  # in-cluster Service DNS name instead (port matches the chart's
+  # values.yaml erd.api.containerPort default).
   #
   # FRONTEND_URL stays the real public URL (used for outbound things like
   # email links, not API calls).
@@ -202,21 +199,15 @@ locals {
   # FRONTEND__*_URL (except GITHUB_SYNC_APP_URL, see client_provided_
   # placeholders below) are read by the *browser-side* JS bundle, and the
   # frontend's nginx image bakes in a strict `connect-src 'self'` CSP plus
-  # its own internal reverse-proxy (/api/, /api/ai_core_ms/, etc. -> the same
-  # backend/erd/semantics/profile K8s Services). Absolute cross-subdomain
-  # URLs here get silently blocked client-side by CSP -- must be relative
-  # paths so the browser stays same-origin and nginx does the actual
-  # cross-service hop.
+  # its own internal reverse-proxy (/api/, /api/ai_core_ms/ -> the same
+  # backend/erd K8s Services). Absolute cross-subdomain URLs here get
+  # silently blocked client-side by CSP -- must be relative paths so the
+  # browser stays same-origin and nginx does the actual cross-service hop.
   generated_service_urls = local.self_service ? {
-    FRONTEND_URL                        = "https://portal.${var.dns_zone}"
-    AI_CORE_ENDPOINT                    = "http://ekai-erd:9002"
-    AI_CORE_PROFILER_ENDPOINT           = "http://ekai-profile:9002"
-    AI_CORE_SEMANTICS_ENDPOINT          = "http://ekai-semantics:8000"
-    SEMANTICS_API_BASE                  = "http://ekai-semantics:8000"
-    FRONTEND__BACKEND_URL               = "/api/"
-    FRONTEND__AI_CORE_URL               = "/api/ai_core_ms/"
-    FRONTEND__AI_CORE_SEMANTICS_URL     = "/api/ai_core_semantics/"
-    FRONTEND__AI_CORE_PROFILER_ENDPOINT = "/api/ai_core_profiler/"
+    FRONTEND_URL          = "https://portal.${var.dns_zone}"
+    AI_CORE_ENDPOINT      = "http://ekai-erd:9002"
+    FRONTEND__BACKEND_URL = "/api/"
+    FRONTEND__AI_CORE_URL = "/api/ai_core_ms/"
   } : {}
 
   # Freshly generated per-install, independent values — never reused across
@@ -237,9 +228,6 @@ locals {
   # never needs to touch these.
   safe_defaults = local.self_service ? {
     DECRYPTED_EKAI_TOKEN        = "EKAI@8008"
-    VECTOR_EMBEDDING_MODEL      = var.vector_embedding_model
-    VECTOR_EMBEDDING_BATCH_SIZE = tostring(var.vector_embedding_batch_size)
-    CLAUDE_MODEL                = var.claude_model
     NODE_ENV                    = "production"
     ENVIRONMENT                 = "production"
     PORT                        = "3000"
@@ -251,70 +239,27 @@ locals {
     AI_CORE__REDIS_DB           = "0"
     AI_CORE__REDIS_BUFFER_TIME  = "60"
     LOGS_GROUP_NAME             = "ekai/${var.env}"
-
-    SEMANTICS__LOGS_GROUP_NAME              = "ekai/${var.env}/semantics"
-    SEMANTICS__API_KEY_ENABLED              = "false"
-    SEMANTICS__API_V1_PREFIX                = "/api/v1"
-    SEMANTICS__BASE_PATH                    = "/app/workspaces"
-    SEMANTICS__DEPLOYMENT_TYPE              = "EKAI"
-    SEMANTICS__CLAUDE_MAX_TOKENS            = "32000"
-    SEMANTICS__CLAUDE_TEMPERATURE           = "0.0"
-    SEMANTICS__VERTEX_SONNET_MODEL          = "claude-sonnet-4-6@default"
-    SEMANTICS__CONFIDENCE_THRESHOLD         = "0.6"
-    SEMANTICS__DB_POOL_SIZE                 = "5"
-    SEMANTICS__DB_MAX_OVERFLOW              = "10"
-    SEMANTICS__REDIS_DB                     = "0"
-    SEMANTICS__REDIS_MAX_CONNECTIONS        = "100"
-    SEMANTICS__REDIS_RETRY_ON_TIMEOUT       = "true"
-    SEMANTICS__REDIS_SOCKET_CONNECT_TIMEOUT = "5"
-    SEMANTICS__REDIS_SOCKET_KEEPALIVE       = "true"
-    SEMANTICS__PAGINATION_DEFAULT_LIMIT     = "20"
-    SEMANTICS__PAGINATION_MAX_LIMIT         = "100"
-    SEMANTICS__MAX_FILE_SIZE_MB             = "50"
-    SEMANTICS__DOCUMENT_CHUNK_SIZE          = "15000"
-    SEMANTICS__EXTRACTION_MAX_RETRIES       = "2"
-    SEMANTICS__UPLOAD_DIR                   = "/app/uploads"
-    SEMANTICS__GCS_DOCAI_LOCATION           = "us"
   } : {}
 
   # Only the client can provide these — real external accounts/keys Terraform
   # has no way to know. Blank string for genuinely optional features
-  # (GitHub sync, Langfuse tracing); "REPLACE_ME" for ones the app needs to
-  # actually function.
+  # (GitHub sync); "REPLACE_ME" for ones the app needs to actually function.
   client_provided_placeholders = local.self_service ? {
-    ANTHROPIC_API_KEY    = "REPLACE_ME"
-    OPENAI_API_KEY       = "REPLACE_ME"
-    COGNITO_REGION       = "REPLACE_ME"
-    COGNITO_USER_POOL_ID = "REPLACE_ME"
-    COGNITO_CLIENT_ID    = "REPLACE_ME"
-
     PLATFORM__EKAI_GITHUB_APP_ID          = ""
     PLATFORM__EKAI_GITHUB_APP_PRIVATE_KEY = ""
     # Not a backend call -- the public github.com/apps/.../installations/new
     # install link, only needed if testing the GitHub sync flow.
     FRONTEND__GITHUB_SYNC_APP_URL = ""
 
-    LANGFUSE_HOST       = ""
-    LANGFUSE_PUBLIC_KEY = ""
-    LANGFUSE_SECRET_KEY = ""
-
     # Signup invite emails go through AWS SES regardless of which cloud
-    # hosts the cluster (no GCP-native equivalent in the app) -- same
-    # category as SEMANTICS__GCS_* below being hardcoded to GCP Document AI
-    # regardless of cluster cloud. Since self-service always uses in-cluster
-    # MinIO for file storage (not S3), this AWS IAM user only needs SES send
-    # access, not S3 -- a smaller ask than AWS's own self-service, which
-    # reuses the same credential for both.
+    # hosts the cluster (no GCP-native equivalent in the app). Since
+    # self-service always uses in-cluster MinIO for file storage (not S3),
+    # this AWS IAM user only needs SES send access, not S3 -- a smaller ask
+    # than AWS's own self-service, which reuses the same credential for both.
     AWS_ACCESS_KEY_ID     = "REPLACE_ME"
     AWS_SECRET_ACCESS_KEY = "REPLACE_ME"
     SES_AWS_REGION        = "REPLACE_ME"
     AWS_SES_FROM_EMAIL    = "REPLACE_ME"
-
-    SEMANTICS__API_KEY                = ""
-    SEMANTICS__GOOGLE_CLOUD_PROJECT   = "REPLACE_ME"
-    SEMANTICS__GCS_DOCAI_PROCESSOR_ID = "REPLACE_ME"
-    SEMANTICS__GCS_INPUT_BUCKET       = "REPLACE_ME"
-    SEMANTICS__GCS_OUTPUT_BUCKET      = "REPLACE_ME"
   } : {}
 }
 
@@ -485,11 +430,12 @@ resource "google_dns_record_set" "services" {
 # cicd_provider = "none" only — the block above is driven by var.pipelines,
 # which self-service never populates (there's no CI pipeline to describe),
 # so without this, every hostname generated_service_urls/self_service_helm_values
-# already bakes into the app secret and chart Ingress (portal/backend/erd/
-# semantics/profile.<dns_zone>) would be NXDOMAIN after a successful apply —
-# nothing else in this stack creates these records.
+# already bakes into the app secret and chart Ingress (portal/backend/
+# erd.<dns_zone>) would be NXDOMAIN after a successful apply — nothing else
+# in this stack creates these records. profile/semantics excluded — those
+# services are disabled by default in the ekai-saas chart.
 resource "google_dns_record_set" "self_service_services" {
-  for_each = local.self_service ? toset(["portal", "backend", "erd", "semantics", "profile"]) : toset([])
+  for_each = local.self_service ? toset(["portal", "backend", "erd"]) : toset([])
 
   project      = var.project_id
   managed_zone = var.dns_zone_name

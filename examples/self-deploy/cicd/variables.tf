@@ -84,23 +84,6 @@ variable "tls_secret_name" {
   default     = "wildcard-tls"
 }
 
-variable "claude_model" {
-  description = "Claude model the app's semantics service uses (cicd_provider = \"none\" only)."
-  type        = string
-  default     = "claude-haiku-4-5-20251001"
-}
-
-variable "vector_embedding_model" {
-  description = "OpenAI embedding model for semantics' vector search (cicd_provider = \"none\" only)."
-  type        = string
-  default     = "text-embedding-3-small"
-}
-
-variable "vector_embedding_batch_size" {
-  description = "Batch size for embedding generation (cicd_provider = \"none\" only)."
-  type        = number
-  default     = 100
-}
 
 variable "secret_value_overrides" {
   description = "Escape hatch for any key in the app secret (cicd_provider = \"none\" only) that doesn't have its own dedicated variable — merged on top of every computed/default value, so it wins on conflicts."

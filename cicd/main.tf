@@ -42,9 +42,6 @@ module "cicd" {
   erd_storage_class                 = var.erd_storage_class
   ingress_class_name                = var.ingress_class_name
   tls_secret_name                   = var.tls_secret_name
-  claude_model                      = var.claude_model
-  vector_embedding_model            = var.vector_embedding_model
-  vector_embedding_batch_size       = var.vector_embedding_batch_size
   secret_value_overrides            = var.secret_value_overrides
   pipelines                         = var.pipelines
   cd_branch                         = var.cd_branch
