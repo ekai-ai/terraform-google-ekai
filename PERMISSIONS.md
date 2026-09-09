@@ -7,7 +7,18 @@ different GCP identities**, not one:
    when you run the script (`gcloud auth login`, a service account, ...).
    Its job is enabling APIs, creating one deployer Service Account, granting
    it project-level roles, and setting up the Terraform state bucket. It
-   never runs `terraform apply` itself.
+   never runs `terraform apply` itself. This is the identity you need to
+   grant these 5 roles to before running `self-deploy.sh` (see "Why this
+   can't be scoped any narrower" below for what each one covers and how
+   this was live-tested):
+
+   ```
+   roles/serviceusage.serviceUsageAdmin
+   roles/iam.serviceAccountAdmin
+   roles/iam.serviceAccountKeyAdmin
+   roles/resourcemanager.projectIamAdmin
+   roles/storage.admin
+   ```
 2. **The scoped deployer** (`ekai-terraform-<env>@<project>.iam.gserviceaccount.com`)
    — a Service Account the bootstrapping identity creates. Terraform runs as
    *this* identity for everything else (VPC, GKE, Cloud SQL, DNS, Secret
