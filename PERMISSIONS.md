@@ -18,12 +18,6 @@ roles/storage.admin                       # create/manage the state bucket
 `resourcemanager.projectIamAdmin` is unavoidably project-wide — GCP has no
 way to scope "can grant only these roles."
 
-Live-tested 2026-09-09 in `ekai-dev`: a service account holding only these 5
-roles ran every `gcloud` call both scripts make as this identity (enable
-APIs, create + key the deployer SA, grant it all 10 roles below, create the
-state bucket, grant it bucket-scoped `storage.admin`). No failures, nothing
-missing.
-
 ## 2. Deployer SA (`ekai-terraform-<env>@<project>.iam.gserviceaccount.com`)
 
 Created by the bootstrapping identity; runs Terraform for everything else.
