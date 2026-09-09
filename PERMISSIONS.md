@@ -11,9 +11,25 @@ different GCP identities**, not one:
 2. **The scoped deployer** (`ekai-terraform-<env>@<project>.iam.gserviceaccount.com`)
    — a Service Account the bootstrapping identity creates. Terraform runs as
    *this* identity for everything else (VPC, GKE, Cloud SQL, DNS, Secret
-   Manager, ...), via the predefined project roles `self-deploy.sh` grants it
-   (see `PROJECT_ROLES` in that script — no custom role JSON to author, GCP's
-   predefined-role catalog already covers this).
+   Manager, ...), via these predefined project roles, granted automatically
+   by `self-deploy.sh` (`PROJECT_ROLES` in that script — no custom role JSON
+   to author, GCP's predefined-role catalog already covers this):
+
+   ```
+   roles/compute.networkAdmin
+   roles/servicenetworking.networksAdmin
+   roles/container.admin
+   roles/cloudsql.admin
+   roles/dns.admin
+   roles/secretmanager.admin
+   roles/artifactregistry.admin
+   roles/iam.serviceAccountAdmin
+   roles/iam.serviceAccountUser
+   roles/resourcemanager.projectIamAdmin
+   ```
+
+   Nothing to do here yourself — this list is for reference only, so you know
+   exactly what Terraform ends up running as.
 
 This file is about identity 1 only, traced against every `gcloud` call both
 scripts actually make (not identity 2's, which is self-contained in the
@@ -42,6 +58,17 @@ That's the entire bootstrapping identity's footprint. It never directly
 creates a VPC, GKE cluster, Cloud SQL instance, or DNS zone — those all
 happen under the deployer SA's own roles, granted (not held) by this
 identity.
+
+**Verified 2026-09-09** with a real throwaway test in `ekai-dev`: created a
+service account (`permtest-bootstrap`) holding *only* the 5 roles above,
+authenticated as it, and ran every actual `gcloud` call both scripts make as
+identity 1 — enabling all 10 APIs, creating a throwaway deployer SA
+(`permtest-deployer`), granting it all 10 `PROJECT_ROLES`, creating a key
+for it, creating a state bucket with versioning + uniform bucket-level
+access, and granting the deployer SA `roles/storage.admin` scoped to that
+bucket. Every call succeeded with no more than these 5 roles; nothing was
+missing. Fully torn down afterward (both service accounts, their key files,
+the bucket, and every IAM binding removed) — no leftover resources.
 
 ## Where each permission is used
 
