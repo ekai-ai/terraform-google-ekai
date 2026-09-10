@@ -170,12 +170,38 @@ resource "google_sql_database_instance" "postgres" {
 # Databases
 # ---------------------------------------------------------------------------
 
+# Users created before their database (depends_on below, reversed on the
+# database resources) so destroy runs in the opposite, safe order: database
+# dropped first (taking every object the role owns down with it), then the
+# now-unowned role. The other way around, DROP USER fails with "role ...
+# cannot be dropped because N objects depend on it" -- confirmed live against
+# a real customer-env destroy.
+resource "google_sql_user" "backend_db_user" {
+  project  = var.project_id
+  instance = google_sql_database_instance.postgres.name
+  name     = local.backend_user
+  password = local.backend_password
+}
+
+resource "google_sql_user" "semantics_db_user" {
+  project  = var.project_id
+  instance = google_sql_database_instance.postgres.name
+  name     = local.semantics_user
+  password = local.semantics_password
+}
+
+# ---------------------------------------------------------------------------
+# Databases
+# ---------------------------------------------------------------------------
+
 resource "google_sql_database" "backend_db" {
   project   = var.project_id
   instance  = google_sql_database_instance.postgres.name
   name      = local.backend_db_name
   charset   = "UTF8"
   collation = "en_US.UTF8"
+
+  depends_on = [google_sql_user.backend_db_user]
 }
 
 resource "google_sql_database" "semantics_db" {
@@ -184,26 +210,6 @@ resource "google_sql_database" "semantics_db" {
   name      = local.semantics_db_name
   charset   = "UTF8"
   collation = "en_US.UTF8"
-}
 
-# ---------------------------------------------------------------------------
-# Users — names and passwords read from Secret Manager
-# ---------------------------------------------------------------------------
-
-resource "google_sql_user" "backend_db_user" {
-  project  = var.project_id
-  instance = google_sql_database_instance.postgres.name
-  name     = local.backend_user
-  password = local.backend_password
-
-  depends_on = [google_sql_database.backend_db]
-}
-
-resource "google_sql_user" "semantics_db_user" {
-  project  = var.project_id
-  instance = google_sql_database_instance.postgres.name
-  name     = local.semantics_user
-  password = local.semantics_password
-
-  depends_on = [google_sql_database.semantics_db]
+  depends_on = [google_sql_user.semantics_db_user]
 }
