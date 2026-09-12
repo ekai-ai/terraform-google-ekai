@@ -121,3 +121,17 @@ alternative, but isn't supported by this script.
 `self-deploy.sh` starts and tears down automatically. If you're running the
 `cicd` apply manually (not via the script), start that port-forward
 yourself first.
+
+**`Error acquiring the state lock`** — a previous apply/destroy crashed or
+got interrupted after taking the lock but before releasing it (the state
+file itself may already be fully up to date). Confirm nothing is actually
+still running, then `terraform force-unlock <lock ID>` (the ID is printed
+in the error) from whichever directory the error came from.
+
+**`deployer service account ... not found` from `self-deploy-destroy.sh`,
+even though `self-deploy.sh` was run for that env** — your active `gcloud`
+identity is probably stuck as the deployer SA itself, left over from an
+interrupted prior run (it can't describe itself). Check with
+`gcloud config get-value account`; if it shows
+`ekai-terraform-<env>@...` instead of your own account, run
+`gcloud config set account <your-account>` and retry.
