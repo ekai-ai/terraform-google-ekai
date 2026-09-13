@@ -30,12 +30,6 @@
 #   terraform apply -var-file=../../../env/<name>.tfvars
 # (scripts/self-deploy.sh does all of this for you, in order — including the
 # ArgoCD port-forward the cicd apply needs, see cicd/providers.tf.)
-#
-# dns_zone_name mirrors an existing quirk of the source codebase, not
-# something this port introduced: it is NOT derived automatically from the
-# bootstrap submodule's output even though bootstrap creates the zone as
-# "${env}-zone" — it's set here independently, by the same convention. If you
-# ever change env such that the zone name would differ, update this too.
 
 # ─── GCP Identity ─────────────────────────────────────────────────────────────
 project_id = "REPLACE_ME" # a real GCP project the deployer identity has access to
@@ -46,7 +40,8 @@ env        = "customer"
 dns_zone        = "customer.ekai.ai" # stand-in — a real client uses their own domain
 manage_dns_zone = true
 
-vpc_name      = "ekai-vpc"
+# vpc_name intentionally left unset -- defaults to "<env>-vpc", so it always
+# matches env without needing to be kept in sync by hand.
 subnet_cidr   = "10.20.0.0/20" # primary subnet
 pods_cidr     = "10.28.0.0/16" # secondary range for GKE pods
 services_cidr = "10.29.0.0/20" # secondary range for GKE services (ClusterIP)
@@ -57,7 +52,8 @@ services_cidr = "10.29.0.0/20" # secondary range for GKE services (ClusterIP)
 # name yourself. Only set state_bucket_name below if you want a different one.
 
 # ─── cluster submodule (GKE + Cloud SQL) ──────────────────────────────────────
-cluster_name = "ekai-customer-gke"
+# cluster_name intentionally left unset -- defaults to "ekai-<env>-gke", so a
+# different env name doesn't require also updating this to match.
 
 # GKE has native node-pool autoscaling (unlike EKS) -- no separate Cluster
 # Autoscaler to install. min_nodes is the floor, max_nodes the ceiling; GKE
@@ -106,5 +102,6 @@ image_tag                        = "latest"
 helm_chart_repo_url = "public.ecr.aws/s7m9t1b0/ekai-helm"
 helm_chart_version  = "*"
 
-# Cloud DNS zone resource name (created by the bootstrap submodule as "${env}-zone")
-dns_zone_name = "customer-zone"
+# dns_zone_name intentionally left unset -- defaults to "<env>-zone" (created
+# by the bootstrap submodule), so a different env name doesn't require also
+# updating this to match.

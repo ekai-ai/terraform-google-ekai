@@ -135,8 +135,9 @@ variable "ekai_namespace" {
 }
 
 variable "dns_zone_name" {
-  description = "Cloud DNS managed zone name (not the DNS name itself) used for service A records."
+  description = "Cloud DNS managed zone name (not the DNS name itself) used for service A records. Defaults to \"<env>-zone\" when unset."
   type        = string
+  default     = null
 }
 
 variable "cicd_provider" {
@@ -148,10 +149,4 @@ variable "cicd_provider" {
     condition     = contains(["cloud_build", "github_actions", "none"], var.cicd_provider)
     error_message = "cicd_provider must be one of: cloud_build, github_actions, none."
   }
-}
-
-variable "cluster_name" {
-  description = "GKE cluster name — used to query cluster endpoint directly from the GKE API in providers.tf."
-  type        = string
-  default     = "ekai-gke"
 }

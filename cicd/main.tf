@@ -17,6 +17,11 @@
 locals {
   state_bucket_name = var.state_bucket_name != "" ? var.state_bucket_name : "ekai-terraform-state-${var.env}-${var.project_id}"
   argocd_host       = coalesce(var.argocd_ingress_host, "argocd.${var.dns_zone}")
+
+  # Derived from env unless explicitly overridden — matches the zone name
+  # the bootstrap submodule actually creates, so a new deployment only needs
+  # to set env.
+  dns_zone_name = coalesce(var.dns_zone_name, "${var.env}-zone")
 }
 
 data "terraform_remote_state" "combined" {
@@ -49,7 +54,7 @@ module "cicd" {
   argocd_ingress_host               = local.argocd_host
   github_org                        = var.github_org
   ekai_namespace                    = var.ekai_namespace
-  dns_zone_name                     = var.dns_zone_name
+  dns_zone_name                     = local.dns_zone_name
   cicd_provider                     = var.cicd_provider
 
   # formerly `data "terraform_remote_state" "cluster"` in the original

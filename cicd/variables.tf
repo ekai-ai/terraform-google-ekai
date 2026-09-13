@@ -11,11 +11,12 @@
 # (../variables.tf) reads — project_id/region/env/secrets_name/cicd_provider
 # are declared again here (same name, same meaning) because this is a
 # separate Terraform config with its own variable namespace, not because the
-# value differs. cluster_name is ALSO needed here (unlike AWS's cicd/, which
-# gets its cluster name from the combined remote state) because
-# providers.tf's `data.google_container_cluster` queries the GKE API
-# directly, by name — matches the original 04-cicd/variables.tf, which
-# already declared this for the exact same reason.
+# value differs. cluster_name has NO variable here (unlike the original
+# 04-cicd/variables.tf) — providers.tf's `data.google_container_cluster`
+# reads the actual computed name straight from
+# `data.terraform_remote_state.combined.outputs.cluster_name` instead, same
+# as AWS's cicd/, so this config can never derive it differently than the
+# combined root actually did.
 # ──────────────────────────────────────────────────────────────────────────────
 
 variable "project_id" {
@@ -144,8 +145,9 @@ variable "ekai_namespace" {
 }
 
 variable "dns_zone_name" {
-  description = "Cloud DNS managed zone name (not the DNS name itself) used for service A records."
+  description = "Cloud DNS managed zone name (not the DNS name itself) used for service A records. Defaults to \"<env>-zone\" when unset."
   type        = string
+  default     = null
 }
 
 variable "cicd_provider" {
@@ -157,10 +159,4 @@ variable "cicd_provider" {
     condition     = contains(["cloud_build", "github_actions", "none"], var.cicd_provider)
     error_message = "cicd_provider must be one of: cloud_build, github_actions, none."
   }
-}
-
-variable "cluster_name" {
-  description = "GKE cluster name — used to query cluster endpoint directly from the GKE API in providers.tf."
-  type        = string
-  default     = "ekai-gke"
 }

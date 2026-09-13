@@ -124,8 +124,9 @@ variable "state_bucket_name" {
 # ═══════════════════════════════════════════════════════════════════════════
 
 variable "cluster_name" {
-  description = "Name of the GKE cluster."
+  description = "Name of the GKE cluster. Defaults to \"ekai-<env>-gke\" when unset."
   type        = string
+  default     = null
 }
 
 variable "node_machine_type" {

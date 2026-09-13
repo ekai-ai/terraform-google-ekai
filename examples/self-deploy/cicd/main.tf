@@ -86,5 +86,4 @@ module "cicd" {
   ekai_namespace                    = var.ekai_namespace
   dns_zone_name                     = var.dns_zone_name
   cicd_provider                     = var.cicd_provider
-  cluster_name                      = var.cluster_name
 }

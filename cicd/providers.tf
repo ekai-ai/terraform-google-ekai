@@ -22,11 +22,14 @@
 # harmless — this is the same duplication AWS's cicd/providers.tf accepts for
 # its own (simpler, self-service-only) equivalent.
 #
-# Cluster credentials are queried directly from the GKE API
-# (`data.google_container_cluster`) rather than via remote state — this is
-# UNCHANGED from the original 04-cicd/providers.tf (a deliberate GCP-specific
-# choice already made by the source codebase, more reliable than a remote
-# state read that could point at a stale/mismatched prefix).
+# Cluster credentials (endpoint/CA) are still queried directly from the GKE
+# API (`data.google_container_cluster`) rather than via remote state — this
+# is UNCHANGED from the original 04-cicd/providers.tf (a deliberate
+# GCP-specific choice already made by the source codebase, more reliable
+# than a remote state read that could point at a stale/mismatched prefix).
+# Only the cluster's NAME (which cluster to query) comes from the combined
+# root's remote state below, so it can never drift from what that apply
+# actually created.
 # ──────────────────────────────────────────────────────────────────────────────
 
 terraform {
@@ -79,7 +82,7 @@ data "google_client_config" "default" {}
 
 data "google_container_cluster" "gke" {
   project  = var.project_id
-  name     = var.cluster_name
+  name     = data.terraform_remote_state.combined.outputs.cluster_name
   location = var.region
 }
 

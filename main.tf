@@ -31,6 +31,12 @@
 # *provider* configuration at root already pointing at a live cluster).
 # ──────────────────────────────────────────────────────────────────────────────
 
+locals {
+  # Derived from env unless explicitly overridden -- so a new deployment only
+  # needs to set env, not also remember to keep cluster_name in sync with it.
+  cluster_name = coalesce(var.cluster_name, "ekai-${var.env}-gke")
+}
+
 module "bootstrap" {
   source = "./modules/bootstrap"
 
@@ -53,7 +59,7 @@ module "cluster" {
   project_id             = var.project_id
   region                 = var.region
   env                    = var.env
-  cluster_name           = var.cluster_name
+  cluster_name           = local.cluster_name
   node_machine_type      = var.node_machine_type
   min_nodes              = var.min_nodes
   max_nodes              = var.max_nodes
