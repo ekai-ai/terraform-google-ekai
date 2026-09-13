@@ -26,17 +26,13 @@ cd terraform-google-ekai
 cp env/customer.tfvars env/<name>.tfvars
 ```
 
-`<name>` is yours to pick (e.g. your client's name) — whatever you call this
-file (without `.tfvars`) is also the argument you pass to `self-deploy.sh`
-below, and it's a good idea to also set `env` (inside the file) to the same
-value, since every GCP resource this creates embeds `env` in its name. Don't
-skip the `cp` and edit `env/customer.tfvars` directly — that file is the
-template every future deployment copies from.
+`<name>` is your choice (e.g. client name) — it's both the filename and the
+argument to `self-deploy.sh` below. Set `env` inside the file to the same
+value. Don't edit `env/customer.tfvars` directly — it's the shared template.
 
 **Required:** edit `env/<name>.tfvars` and set at minimum `project_id`,
-`region`, `env`, `dns_zone`, `acme_email` before continuing — `self-deploy.sh`
-will not work with the template's placeholder values. Every variable has a full
-explanation as an inline comment in that file; the ones most worth a second
+`region`, `env`, `dns_zone`, `acme_email` — `self-deploy.sh` won't work with
+placeholder values. Every variable has an inline comment; worth a second
 look before your first deploy:
 
 | Variable | What it controls |
