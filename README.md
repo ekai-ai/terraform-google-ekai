@@ -23,9 +23,17 @@ applies, the module layout, the Terraform Registry option), see
 ```bash
 git clone https://github.com/ekai-ai/terraform-google-ekai.git
 cd terraform-google-ekai
+cp env/customer.tfvars env/<name>.tfvars
 ```
 
-**Required:** edit `env/customer.tfvars` and set at minimum `project_id`,
+`<name>` is yours to pick (e.g. your client's name) — whatever you call this
+file (without `.tfvars`) is also the argument you pass to `self-deploy.sh`
+below, and it's a good idea to also set `env` (inside the file) to the same
+value, since every GCP resource this creates embeds `env` in its name. Don't
+skip the `cp` and edit `env/customer.tfvars` directly — that file is the
+template every future deployment copies from.
+
+**Required:** edit `env/<name>.tfvars` and set at minimum `project_id`,
 `region`, `env`, `dns_zone`, `acme_email` before continuing — `self-deploy.sh`
 will not work with the template's placeholder values. Every variable has a full
 explanation as an inline comment in that file; the ones most worth a second
@@ -44,14 +52,14 @@ Full reference (every variable, every default): [ARCHITECTURE.md](ARCHITECTURE.m
 auto-generated Inputs page once this is published there.
 
 ```bash
-./scripts/self-deploy.sh customer
+./scripts/self-deploy.sh <name>
 ```
 
 The argument to `self-deploy.sh` must match the tfvars filename in `env/`
-(without `.tfvars`). Use a real, unique `env` value (not `customer`) if
-you're deploying more than once — every GCP resource this creates embeds
-`env` in its name, so re-running with the same value modifies the *same*
-infrastructure rather than creating a second one.
+(without `.tfvars`) — i.e. whatever you named the copy above. Use a real,
+unique `env` value if you're deploying more than once — every GCP resource
+this creates embeds `env` in its name, so re-running with the same value
+modifies the *same* infrastructure rather than creating a second one.
 
 `self-deploy.sh` enables the required GCP APIs, creates the scoped deployer
 Service Account Terraform needs, then runs both `terraform apply`s for you
@@ -94,7 +102,7 @@ terraform output -C examples/self-deploy/cicd
 ## Tearing down
 
 ```bash
-./scripts/self-deploy-destroy.sh customer
+./scripts/self-deploy-destroy.sh <name>
 ```
 
 Destroys everything this created, with confirmation prompts at each
