@@ -60,8 +60,11 @@ done
 
 PROJECT_ID=$(grep -E '^project_id[[:space:]]*=' "${TFVARS}" | head -1 | sed 's/.*=[[:space:]]*"\(.*\)".*/\1/')
 REGION=$(grep -E '^region[[:space:]]*=' "${TFVARS}" | head -1 | sed 's/.*=[[:space:]]*"\(.*\)".*/\1/')
-CLUSTER_NAME=$(grep -E '^cluster_name[[:space:]]*=' "${TFVARS}" | head -1 | sed 's/.*=[[:space:]]*"\(.*\)".*/\1/')
 [[ -z "${PROJECT_ID}" || -z "${REGION}" ]] && { echo "ERROR: could not read project_id/region from ${TFVARS}"; exit 1; }
+# CLUSTER_NAME is read from `terraform output` below, not grepped from
+# tfvars -- cluster_name is optional there (defaults to "ekai-<env>-gke"),
+# and grepping a tfvars key that isn't present would return empty under
+# set -e/pipefail's error checking anyway.
 
 echo "════════════════════════════════════════════════════════════════"
 echo " Ekai GCP self-deploy DESTROY — environment: ${ENV} (project: ${PROJECT_ID})"
@@ -134,6 +137,11 @@ trap cleanup_all EXIT
 echo
 echo "════════ terraform destroy (cicd) ════════"
 echo "==> Fetching cluster credentials for port-forward..."
+# Read the actual cluster name from the still-intact root state (nothing
+# has been destroyed yet at this point) instead of grepping tfvars, since
+# cluster_name is optional there.
+terraform -chdir="${REPO_ROOT}/examples/self-deploy/root" init -input=false -reconfigure -backend-config="../../../env/backend-${ENV}.tfbackend" 1>/dev/null
+CLUSTER_NAME=$(terraform -chdir="${REPO_ROOT}/examples/self-deploy/root" output -raw cluster_name)
 if gcloud container clusters get-credentials "${CLUSTER_NAME}" --region "${REGION}" --project "${PROJECT_ID}" 2>/dev/null; then
   kubectl port-forward svc/argocd-server -n argocd 8080:80 >/dev/null 2>&1 &
   PF_PID=$!

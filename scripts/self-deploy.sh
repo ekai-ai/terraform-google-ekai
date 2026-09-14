@@ -70,7 +70,11 @@ REGION=$(grep -E '^region[[:space:]]*=' "${TFVARS}" | head -1 | sed 's/.*=[[:spa
 [[ -z "${REGION}" ]] && { echo "ERROR: could not read 'region' from ${TFVARS}"; exit 1; }
 ACME_EMAIL=$(grep -E '^acme_email[[:space:]]*=' "${TFVARS}" | head -1 | sed 's/.*=[[:space:]]*"\(.*\)".*/\1/')
 [[ -z "${ACME_EMAIL}" || "${ACME_EMAIL}" == "REPLACE_ME" ]] && { echo "ERROR: set a real acme_email in ${TFVARS} first -- cert-manager's Let's Encrypt ACME account registration fails without one."; exit 1; }
-CLUSTER_NAME=$(grep -E '^cluster_name[[:space:]]*=' "${TFVARS}" | head -1 | sed 's/.*=[[:space:]]*"\(.*\)".*/\1/')
+# CLUSTER_NAME is read from `terraform output` after the apply below, not
+# grepped from tfvars here -- cluster_name is optional (defaults to
+# "ekai-<env>-gke" in Terraform when left unset), and grepping a tfvars key
+# that isn't present would return empty under set -e/pipefail's error
+# checking anyway. See the "cicd" section below for where it's actually set.
 
 # Captured before anything switches it -- gcloud auth activate-service-account
 # below persists across separate script invocations (unlike AWS's env-var
@@ -86,7 +90,7 @@ echo "    (this identity needs project-admin rights to run this script —"
 echo "     it is NOT the identity Terraform will use)"
 echo
 
-CICD_PROVIDER=$(grep -E '^cicd_provider[[:space:]]*=' "${TFVARS}" | head -1 | sed 's/.*=[[:space:]]*"\(.*\)".*/\1/')
+CICD_PROVIDER=$(grep -E '^cicd_provider[[:space:]]*=' "${TFVARS}" | head -1 | sed 's/.*=[[:space:]]*"\(.*\)".*/\1/' || true)
 [[ -z "${CICD_PROVIDER}" ]] && CICD_PROVIDER="none"
 if [[ "${CICD_PROVIDER}" == "none" ]]; then
   echo "==> cicd_provider = \"none\" (self-service) — the cluster/platform"
@@ -343,6 +347,11 @@ fi
 echo
 echo "════════ terraform apply (cicd) ════════"
 echo "==> Fetching cluster credentials for port-forward..."
+# Read the actual cluster name Terraform just created/used -- not grepped
+# from tfvars, since cluster_name is optional there and this is the one
+# place that already knows the real value regardless of whether it was
+# explicitly set or defaulted.
+CLUSTER_NAME=$(terraform output -raw cluster_name)
 gcloud container clusters get-credentials "${CLUSTER_NAME}" --region "${REGION}" --project "${PROJECT_ID}"
 
 kubectl port-forward svc/argocd-server -n argocd 8080:80 >/dev/null 2>&1 &
