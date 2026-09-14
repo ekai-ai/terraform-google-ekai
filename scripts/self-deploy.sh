@@ -52,13 +52,13 @@ echo " Ekai GCP self-deploy — environment: ${ENV}"
 echo "════════════════════════════════════════════════════════════════"
 echo
 
-PROJECT_ID=$(grep -E '^project_id\s*=' "${TFVARS}" | head -1 | sed 's/.*=\s*"\(.*\)".*/\1/')
+PROJECT_ID=$(grep -E '^project_id[[:space:]]*=' "${TFVARS}" | head -1 | sed 's/.*=[[:space:]]*"\(.*\)".*/\1/')
 [[ -z "${PROJECT_ID}" || "${PROJECT_ID}" == "REPLACE_ME" ]] && { echo "ERROR: set a real project_id in ${TFVARS} first."; exit 1; }
-REGION=$(grep -E '^region\s*=' "${TFVARS}" | head -1 | sed 's/.*=\s*"\(.*\)".*/\1/')
+REGION=$(grep -E '^region[[:space:]]*=' "${TFVARS}" | head -1 | sed 's/.*=[[:space:]]*"\(.*\)".*/\1/')
 [[ -z "${REGION}" ]] && { echo "ERROR: could not read 'region' from ${TFVARS}"; exit 1; }
-ACME_EMAIL=$(grep -E '^acme_email\s*=' "${TFVARS}" | head -1 | sed 's/.*=\s*"\(.*\)".*/\1/')
+ACME_EMAIL=$(grep -E '^acme_email[[:space:]]*=' "${TFVARS}" | head -1 | sed 's/.*=[[:space:]]*"\(.*\)".*/\1/')
 [[ -z "${ACME_EMAIL}" || "${ACME_EMAIL}" == "REPLACE_ME" ]] && { echo "ERROR: set a real acme_email in ${TFVARS} first -- cert-manager's Let's Encrypt ACME account registration fails without one."; exit 1; }
-CLUSTER_NAME=$(grep -E '^cluster_name\s*=' "${TFVARS}" | head -1 | sed 's/.*=\s*"\(.*\)".*/\1/')
+CLUSTER_NAME=$(grep -E '^cluster_name[[:space:]]*=' "${TFVARS}" | head -1 | sed 's/.*=[[:space:]]*"\(.*\)".*/\1/')
 
 # Captured before anything switches it -- gcloud auth activate-service-account
 # below persists across separate script invocations (unlike AWS's env-var
@@ -74,7 +74,7 @@ echo "    (this identity needs project-admin rights to run this script —"
 echo "     it is NOT the identity Terraform will use)"
 echo
 
-CICD_PROVIDER=$(grep -E '^cicd_provider\s*=' "${TFVARS}" | head -1 | sed 's/.*=\s*"\(.*\)".*/\1/')
+CICD_PROVIDER=$(grep -E '^cicd_provider[[:space:]]*=' "${TFVARS}" | head -1 | sed 's/.*=[[:space:]]*"\(.*\)".*/\1/')
 [[ -z "${CICD_PROVIDER}" ]] && CICD_PROVIDER="none"
 if [[ "${CICD_PROVIDER}" == "none" ]]; then
   echo "==> cicd_provider = \"none\" (self-service) — the cluster/platform"
@@ -186,10 +186,12 @@ echo "──── Step 3/4: State backend ────────────�
 # step grants IAM on a bucket name that doesn't match what actually got
 # created -- including using tfvars' own env= value (ENV_PREFIX), not this
 # script's ENV argument, since the two can differ (see init-state-backend.sh).
-ENV_PREFIX=$(grep -E '^env\s*=' "${TFVARS}" | head -1 | sed 's/.*=\s*"\(.*\)".*/\1/')
-[[ -z "${ENV_PREFIX}" ]] && ENV_PREFIX="${ENV}"
-BUCKET_FROM_TFVARS=$(grep -E '^state_bucket_name\s*=' "${TFVARS}" | head -1 | sed 's/.*=\s*"\(.*\)".*/\1/' || true)
-BUCKET="${BUCKET_FROM_TFVARS:-ekai-terraform-state-${ENV_PREFIX}-${PROJECT_ID}}"
+ENV_PREFIX=$(grep -E '^env[[:space:]]*=' "${TFVARS}" | head -1 | sed 's/.*=[[:space:]]*"\(.*\)".*/\1/')
+if [[ -z "${ENV_PREFIX}" ]]; then
+  ENV_PREFIX="${ENV}"
+fi
+BUCKET_FROM_TFVARS=$(grep -E '^state_bucket_name[[:space:]]*=' "${TFVARS}" | head -1 | sed 's/.*=[[:space:]]*"\(.*\)".*/\1/' || true)
+BUCKET="${BUCKET_FROM_TFVARS:-ekai-terraform-state-${ENV}-${PROJECT_ID}}"
 # storage.admin, not just objectAdmin -- self-deploy-destroy.sh's optional
 # cleanup deletes the bucket itself (storage.buckets.delete), which
 # objectAdmin doesn't grant (object-level permissions only).
@@ -216,7 +218,7 @@ echo "──── Step 4/4: Deploy infrastructure ─────────�
 echo "Everything above is prep — no cluster infrastructure has been created yet."
 echo "This next step creates real GCP resources (VPC, GKE, Cloud SQL, ...) and costs money."
 echo
-read -rp "Run the Terraform deploy now (2 applies — bootstrap+cluster+platform, then cicd)? [y/N] " CONFIRM
+read -rp "Run the Terraform deploy now (2 applies — bootstrap+cluster+platform, then cicd)? [y/N] " CONFIRM </dev/tty
 if [[ ! "${CONFIRM}" =~ ^[Yy]$ ]]; then
   echo
   echo "Skipped. When you're ready, deploy locally:"
@@ -282,9 +284,9 @@ terraform apply -auto-approve -compact-warnings -var-file="../../../env/${ENV}.t
 # the Certificate resource just sits at READY=False indefinitely. Confirmed
 # live: this exact scenario left ArgoCD reachable but serving an invalid
 # cert (browser "connection is not private").
-MANAGE_DNS_ZONE=$(grep -E '^manage_dns_zone\s*=' "${TFVARS}" | head -1 | sed 's/.*=\s*\(true\|false\).*/\1/')
+MANAGE_DNS_ZONE=$(grep -E '^manage_dns_zone[[:space:]]*=' "${TFVARS}" | head -1 | sed 's/.*=[[:space:]]*\(true\|false\).*/\1/')
 if [[ "${MANAGE_DNS_ZONE}" == "true" ]]; then
-  DNS_ZONE=$(grep -E '^dns_zone\s*=' "${TFVARS}" | head -1 | sed 's/.*=\s*"\(.*\)".*/\1/')
+  DNS_ZONE=$(grep -E '^dns_zone[[:space:]]*=' "${TFVARS}" | head -1 | sed 's/.*=[[:space:]]*"\(.*\)".*/\1/')
   # Strip trailing dots -- GCP's API returns FQDNs with them
   # (ns-cloud-d1.googledomains.com.), so without this every comparison
   # against dig's own trailing-dot-stripped output below would falsely
@@ -298,7 +300,7 @@ if [[ "${MANAGE_DNS_ZONE}" == "true" ]]; then
     echo "zone) pointing at each of these nameservers:"
     echo "${ZONE_NS}" | sed 's/^/  /'
     echo
-    read -rp "Press Enter once you've added it (Ctrl-C to do this later and re-run) " _
+    read -rp "Press Enter once you've added it (Ctrl-C to do this later and re-run) " _ </dev/tty
     echo "==> Checking DNS delegation (this can take several minutes to propagate)..."
     for i in $(seq 1 40); do
       RESOLVED=$(dig +short NS "${DNS_ZONE}" @8.8.8.8 2>/dev/null | sed 's/\.$//' | sort)

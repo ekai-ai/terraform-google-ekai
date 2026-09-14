@@ -52,9 +52,9 @@ for bin in gcloud kubectl terraform jq curl; do
   command -v "$bin" >/dev/null 2>&1 || { echo "ERROR: '$bin' is required but not installed."; exit 1; }
 done
 
-PROJECT_ID=$(grep -E '^project_id\s*=' "${TFVARS}" | head -1 | sed 's/.*=\s*"\(.*\)".*/\1/')
-REGION=$(grep -E '^region\s*=' "${TFVARS}" | head -1 | sed 's/.*=\s*"\(.*\)".*/\1/')
-CLUSTER_NAME=$(grep -E '^cluster_name\s*=' "${TFVARS}" | head -1 | sed 's/.*=\s*"\(.*\)".*/\1/')
+PROJECT_ID=$(grep -E '^project_id[[:space:]]*=' "${TFVARS}" | head -1 | sed 's/.*=[[:space:]]*"\(.*\)".*/\1/')
+REGION=$(grep -E '^region[[:space:]]*=' "${TFVARS}" | head -1 | sed 's/.*=[[:space:]]*"\(.*\)".*/\1/')
+CLUSTER_NAME=$(grep -E '^cluster_name[[:space:]]*=' "${TFVARS}" | head -1 | sed 's/.*=[[:space:]]*"\(.*\)".*/\1/')
 [[ -z "${PROJECT_ID}" || -z "${REGION}" ]] && { echo "ERROR: could not read project_id/region from ${TFVARS}"; exit 1; }
 
 echo "════════════════════════════════════════════════════════════════"
@@ -64,7 +64,7 @@ echo
 echo "This will permanently destroy the VPC, GKE cluster, Cloud SQL database,"
 echo "ArgoCD, and DNS zone for '${ENV}'. This cannot be undone."
 echo
-read -rp "Type the environment name (${ENV}) to confirm: " CONFIRM_ENV
+read -rp "Type the environment name (${ENV}) to confirm: " CONFIRM_ENV </dev/tty
 if [[ "${CONFIRM_ENV}" != "${ENV}" ]]; then
   echo "Did not match — aborted. Nothing was touched."
   exit 1
@@ -177,7 +177,7 @@ echo "✓ Terraform infrastructure destroyed for env=${ENV}."
 
 # ── Optional: GCS state bucket + DNS records ─────────────────────────────────
 echo
-read -rp "Also delete the GCS state bucket and DNS records? [y/N] " CLEAN_GCP
+read -rp "Also delete the GCS state bucket and DNS records? [y/N] " CLEAN_GCP </dev/tty
 if [[ "${CLEAN_GCP}" =~ ^[Yy]$ ]]; then
   "${SCRIPT_DIR}/cleanup-gcp-env.sh" "${ENV}" "${PROJECT_ID}"
 else
@@ -191,7 +191,7 @@ fi
 # as dangling bindings in that policy forever (GCP does not auto-clean them).
 # Remove each binding explicitly first, same role list self-deploy.sh grants.
 echo
-read -rp "Also delete the deployer service account ${SA_EMAIL} and its key? [y/N] " CLEAN_SA
+read -rp "Also delete the deployer service account ${SA_EMAIL} and its key? [y/N] " CLEAN_SA </dev/tty
 if [[ "${CLEAN_SA}" =~ ^[Yy]$ ]]; then
   PROJECT_ROLES=(
     roles/compute.networkAdmin

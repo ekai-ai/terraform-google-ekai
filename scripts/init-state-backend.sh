@@ -47,7 +47,7 @@ if [[ -n "${PROJECT_ID_OVERRIDE}" ]]; then
   PROJECT_ID="${PROJECT_ID_OVERRIDE}"
   echo "==> project_id from argument: ${PROJECT_ID}"
 else
-  PROJECT_ID=$(grep -E '^project_id\s*=' "${TFVARS}" | head -1 | sed 's/.*=\s*"\(.*\)".*/\1/')
+  PROJECT_ID=$(grep -E '^project_id[[:space:]]*=' "${TFVARS}" | head -1 | sed 's/.*=[[:space:]]*"\(.*\)".*/\1/')
   echo "==> project_id from tfvars: ${PROJECT_ID}"
 fi
 
@@ -57,7 +57,7 @@ if [[ -z "${PROJECT_ID}" || "${PROJECT_ID}" == "REPLACE_ME" ]]; then
   exit 1
 fi
 
-REGION=$(grep -E '^region\s*=' "${TFVARS}" | head -1 | sed 's/.*=\s*"\(.*\)".*/\1/')
+REGION=$(grep -E '^region[[:space:]]*=' "${TFVARS}" | head -1 | sed 's/.*=[[:space:]]*"\(.*\)".*/\1/')
 if [[ -z "${REGION}" ]]; then
   echo "ERROR: could not extract 'region' from ${TFVARS}"
   exit 1
@@ -81,7 +81,7 @@ fi
 # `|| true` -- grep exits 1 (not an error, just "no match") when
 # state_bucket_name is commented out entirely, which under `set -euo
 # pipefail` would otherwise kill the script right here with no error message.
-BUCKET_FROM_TFVARS=$(grep -E '^state_bucket_name\s*=' "${TFVARS}" | head -1 | sed 's/.*=\s*"\(.*\)".*/\1/' || true)
+BUCKET_FROM_TFVARS=$(grep -E '^state_bucket_name[[:space:]]*=' "${TFVARS}" | head -1 | sed 's/.*=[[:space:]]*"\(.*\)".*/\1/' || true)
 if [[ -n "${BUCKET_FROM_TFVARS}" ]]; then
   BUCKET="${BUCKET_FROM_TFVARS}"
   echo "==> State bucket from tfvars: ${BUCKET}"
