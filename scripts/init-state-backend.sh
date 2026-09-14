@@ -63,6 +63,17 @@ if [[ -z "${REGION}" ]]; then
   exit 1
 fi
 
+# Env value from tfvars — may differ from the ENV argument (the tfvars
+# filename), e.g. env/umar.tfvars containing env = "umar-test". Used below
+# for BOTH the default bucket name and the state prefix, so it always
+# matches what cicd/main.tf's own data "terraform_remote_state" "combined"
+# computes ("ekai-terraform-state-${var.env}-${var.project_id}") -- that
+# data source has no access to this script's ENV argument, only to var.env.
+ENV_PREFIX=$(grep -E '^env\s*=' "${TFVARS}" | head -1 | sed 's/.*=\s*"\(.*\)".*/\1/')
+if [[ -z "${ENV_PREFIX}" ]]; then
+  ENV_PREFIX="${ENV}"
+fi
+
 # Use state_bucket_name from tfvars if set, otherwise default to a name that
 # embeds project_id -- project_id is already globally unique in GCP, so this
 # default never collides with anyone else's bucket without you having to
@@ -75,7 +86,7 @@ if [[ -n "${BUCKET_FROM_TFVARS}" ]]; then
   BUCKET="${BUCKET_FROM_TFVARS}"
   echo "==> State bucket from tfvars: ${BUCKET}"
 else
-  BUCKET="ekai-terraform-state-${ENV}-${PROJECT_ID}"
+  BUCKET="ekai-terraform-state-${ENV_PREFIX}-${PROJECT_ID}"
   echo "==> State bucket (default):   ${BUCKET}"
 fi
 echo "==> Project      : ${PROJECT_ID}"
@@ -107,12 +118,6 @@ gcloud storage buckets update "gs://${BUCKET}" \
 
 # ── Write backend config files ────────────────────────────────────────────────
 ENV_DIR="${REPO_ROOT}/env"
-
-# Use env value from tfvars as state prefix (may differ from the ENV argument)
-ENV_PREFIX=$(grep -E '^env\s*=' "${TFVARS}" | head -1 | sed 's/.*=\s*"\(.*\)".*/\1/')
-if [[ -z "${ENV_PREFIX}" ]]; then
-  ENV_PREFIX="${ENV}"
-fi
 echo "==> State prefix  : ${ENV_PREFIX}"
 
 ROOT_BACKEND_FILE="${ENV_DIR}/backend-${ENV}.tfbackend"

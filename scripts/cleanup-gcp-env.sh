@@ -27,8 +27,25 @@ fi
 
 ENV="$1"
 PROJECT_ID="$2"
-ZONE_NAME="${ENV}-zone"
-BUCKET="ekai-terraform-state-${ENV}"
+
+# Env value from tfvars — may differ from the ENV argument (the tfvars
+# filename), e.g. env/umar.tfvars containing env = "umar-test". The DNS zone
+# and state bucket were both actually created/named using this value, not
+# necessarily this script's ENV argument -- see init-state-backend.sh.
+TFVARS="${REPO_ROOT}/env/${ENV}.tfvars"
+ENV_PREFIX="${ENV}"
+if [[ -f "${TFVARS}" ]]; then
+  FOUND=$(grep -E '^env\s*=' "${TFVARS}" | head -1 | sed 's/.*=\s*"\(.*\)".*/\1/' || true)
+  [[ -n "${FOUND}" ]] && ENV_PREFIX="${FOUND}"
+fi
+
+ZONE_NAME="${ENV_PREFIX}-zone"
+
+BUCKET="ekai-terraform-state-${ENV_PREFIX}-${PROJECT_ID}"
+if [[ -f "${TFVARS}" ]]; then
+  BUCKET_OVERRIDE=$(grep -E '^state_bucket_name\s*=' "${TFVARS}" | head -1 | sed 's/.*=\s*"\(.*\)".*/\1/' || true)
+  [[ -n "${BUCKET_OVERRIDE}" ]] && BUCKET="${BUCKET_OVERRIDE}"
+fi
 
 echo "==> Environment : ${ENV}"
 echo "==> Project     : ${PROJECT_ID}"

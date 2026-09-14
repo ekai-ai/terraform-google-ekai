@@ -182,8 +182,14 @@ echo "──── Step 3/4: State backend ────────────�
 # `|| true` -- grep exits 1 (not an error, just "no match") when
 # state_bucket_name is commented out entirely, which under `set -euo
 # pipefail` would otherwise kill the script right here with no error message.
+# Fallback must match init-state-backend.sh's own default exactly, or this
+# step grants IAM on a bucket name that doesn't match what actually got
+# created -- including using tfvars' own env= value (ENV_PREFIX), not this
+# script's ENV argument, since the two can differ (see init-state-backend.sh).
+ENV_PREFIX=$(grep -E '^env\s*=' "${TFVARS}" | head -1 | sed 's/.*=\s*"\(.*\)".*/\1/')
+[[ -z "${ENV_PREFIX}" ]] && ENV_PREFIX="${ENV}"
 BUCKET_FROM_TFVARS=$(grep -E '^state_bucket_name\s*=' "${TFVARS}" | head -1 | sed 's/.*=\s*"\(.*\)".*/\1/' || true)
-BUCKET="${BUCKET_FROM_TFVARS:-ekai-terraform-state-${ENV}-${PROJECT_ID}}"
+BUCKET="${BUCKET_FROM_TFVARS:-ekai-terraform-state-${ENV_PREFIX}-${PROJECT_ID}}"
 # storage.admin, not just objectAdmin -- self-deploy-destroy.sh's optional
 # cleanup deletes the bucket itself (storage.buckets.delete), which
 # objectAdmin doesn't grant (object-level permissions only).
