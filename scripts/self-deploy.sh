@@ -27,6 +27,18 @@
 # ──────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
 
+# Every gcloud call in this script must be non-interactive. Set via env vars,
+# not `gcloud config set` -- that itself runs gcloud, which would hit the
+# exact same hang this is meant to prevent. CLOUDSDK_CORE_DISABLE_PROMPTS
+# covers the survey/usage-reporting prompt too (a subset of "interactive
+# prompts"), and the update-check var below skips gcloud's periodic
+# component-update network call -- both can otherwise silently hang the
+# very first gcloud call (e.g. `gcloud config get-value account` right
+# below) for minutes on a slow/blocked network, with zero output to explain
+# why.
+export CLOUDSDK_CORE_DISABLE_PROMPTS=1
+export CLOUDSDK_COMPONENT_MANAGER_DISABLE_UPDATE_CHECK=1
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 

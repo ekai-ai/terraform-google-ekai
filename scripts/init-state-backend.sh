@@ -23,6 +23,12 @@
 # ──────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
 
+# Non-interactive gcloud -- see self-deploy.sh's own copy of this for why
+# (a hidden survey prompt or update-check network call can otherwise hang
+# the very first gcloud command with zero output).
+export CLOUDSDK_CORE_DISABLE_PROMPTS=1
+export CLOUDSDK_COMPONENT_MANAGER_DISABLE_UPDATE_CHECK=1
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
