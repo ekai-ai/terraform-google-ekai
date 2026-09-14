@@ -75,7 +75,7 @@ fi
 # matches what cicd/main.tf's own data "terraform_remote_state" "combined"
 # computes ("ekai-terraform-state-${var.env}-${var.project_id}") -- that
 # data source has no access to this script's ENV argument, only to var.env.
-ENV_PREFIX=$(grep -E '^env\s*=' "${TFVARS}" | head -1 | sed 's/.*=\s*"\(.*\)".*/\1/')
+ENV_PREFIX=$(grep -E '^env[[:space:]]*=' "${TFVARS}" | head -1 | sed 's/.*=[[:space:]]*"\(.*\)".*/\1/')
 if [[ -z "${ENV_PREFIX}" ]]; then
   ENV_PREFIX="${ENV}"
 fi

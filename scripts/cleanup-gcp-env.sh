@@ -41,7 +41,7 @@ PROJECT_ID="$2"
 TFVARS="${REPO_ROOT}/env/${ENV}.tfvars"
 ENV_PREFIX="${ENV}"
 if [[ -f "${TFVARS}" ]]; then
-  FOUND=$(grep -E '^env\s*=' "${TFVARS}" | head -1 | sed 's/.*=\s*"\(.*\)".*/\1/' || true)
+  FOUND=$(grep -E '^env[[:space:]]*=' "${TFVARS}" | head -1 | sed 's/.*=[[:space:]]*"\(.*\)".*/\1/' || true)
   [[ -n "${FOUND}" ]] && ENV_PREFIX="${FOUND}"
 fi
 
@@ -49,7 +49,7 @@ ZONE_NAME="${ENV_PREFIX}-zone"
 
 BUCKET="ekai-terraform-state-${ENV_PREFIX}-${PROJECT_ID}"
 if [[ -f "${TFVARS}" ]]; then
-  BUCKET_OVERRIDE=$(grep -E '^state_bucket_name\s*=' "${TFVARS}" | head -1 | sed 's/.*=\s*"\(.*\)".*/\1/' || true)
+  BUCKET_OVERRIDE=$(grep -E '^state_bucket_name[[:space:]]*=' "${TFVARS}" | head -1 | sed 's/.*=[[:space:]]*"\(.*\)".*/\1/' || true)
   [[ -n "${BUCKET_OVERRIDE}" ]] && BUCKET="${BUCKET_OVERRIDE}"
 fi
 
