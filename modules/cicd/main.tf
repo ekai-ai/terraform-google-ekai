@@ -137,16 +137,6 @@ resource "random_id" "encryption_key" {
   byte_length = 32
 }
 
-resource "random_id" "jwt_secret" {
-  count       = local.self_service ? 1 : 0
-  byte_length = 32
-}
-
-resource "random_id" "fernet_key" {
-  count       = local.self_service ? 1 : 0
-  byte_length = 32
-}
-
 locals {
   # Matches the real, verified secret shape — DATABASE_URL for backend's own
   # database. self_service: the cluster submodule generates these directly
@@ -210,18 +200,22 @@ locals {
     FRONTEND__AI_CORE_URL = "/api/ai_core_ms/"
   } : {}
 
-  # Freshly generated per-install, independent values — never reused across
-  # environments. ENCRYPTION_KEY/PLATFORM__FERNET_KEY get a "=" appended:
-  # random_id's b64_url for byte_length=32 is unpadded base64 (43 chars) --
-  # both Python's cryptography and the Fernet spec itself require the padded
-  # 44-char form ("Fernet key must be 32 url-safe base64-encoded bytes"), and
-  # both keys are fed straight into Fernet (ai-core's crypto.py, backend's
-  # encryption-fernet.ts). 32 bytes always needs exactly one padding
-  # character. PLATFORM__JWT_SECRET has no such format requirement.
+  # Freshly generated per-install, never reused across environments. All
+  # three deliberately share the SAME underlying value (not three
+  # independent ones) -- ENCRYPTION_KEY and PLATFORM__FERNET_KEY are both
+  # fed straight into Fernet, but from DIFFERENT services (ai-core's
+  # crypto.py vs backend's encryption-fernet.ts encrypting/decrypting the
+  # same data), so they must match or cross-service decryption fails.
+  # ENCRYPTION_KEY/PLATFORM__FERNET_KEY get a "=" appended: random_id's
+  # b64_url for byte_length=32 is unpadded base64 (43 chars), but both
+  # Python's cryptography and the Fernet spec itself require the padded
+  # 44-char form ("Fernet key must be 32 url-safe base64-encoded bytes") --
+  # 32 bytes always needs exactly one padding character. PLATFORM__JWT_SECRET
+  # has no such format requirement, so it's used unpadded.
   generated_crypto_keys = local.self_service ? {
     ENCRYPTION_KEY       = "${random_id.encryption_key[0].b64_url}="
-    PLATFORM__JWT_SECRET = random_id.jwt_secret[0].b64_url
-    PLATFORM__FERNET_KEY = "${random_id.fernet_key[0].b64_url}="
+    PLATFORM__JWT_SECRET = random_id.encryption_key[0].b64_url
+    PLATFORM__FERNET_KEY = "${random_id.encryption_key[0].b64_url}="
   } : {}
 
   # Safe, non-secret, working defaults — same for every install. The client
