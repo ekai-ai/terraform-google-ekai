@@ -1,5 +1,37 @@
 locals {
   repo_url = var.source_type == "git" ? "https://github.com/${var.github_org}/deployment-files.git" : var.helm_repo_url
+
+  # ArgoCD Image Updater annotations -- self-service (source_type == "helm")
+  # only. Every tracked image uses a mutable "latest" tag, so ArgoCD's own
+  # diffing never notices a new push (the manifest text never changes);
+  # Image Updater polls each image's digest and patches this Application's
+  # Helm parameters when it changes, giving ArgoCD a real diff to sync.
+  # write-back-method "argocd" patches the Application directly (there's no
+  # git repo to commit to for a Helm/OCI-sourced self-service install).
+  # Aliases/value paths match the chart's existing per-service
+  # <service>.image.{repository,tag} values exactly (see values.yaml) --
+  # semantics/profile are skipped since they're disabled for self-service.
+  image_updater_images = {
+    backend         = "backend"
+    frontend        = "frontend"
+    erd             = "erd"
+    document-worker = "erd.documentWorker"
+    profile-worker  = "erd.profileWorker"
+  }
+
+  image_updater_annotations = var.source_type != "helm" ? {} : merge(
+    {
+      "argocd-image-updater.argoproj.io/image-list"        = join(",", [for alias, path in local.image_updater_images : "${alias}=public.ecr.aws/s7m9t1b0/ekai/ekai-${alias}"])
+      "argocd-image-updater.argoproj.io/write-back-method" = "argocd"
+    },
+    merge([
+      for alias, path in local.image_updater_images : {
+        "argocd-image-updater.argoproj.io/${alias}.update-strategy" = "digest"
+        "argocd-image-updater.argoproj.io/${alias}.helm.image-name" = "${path}.image.repository"
+        "argocd-image-updater.argoproj.io/${alias}.helm.image-tag"  = "${path}.image.tag"
+      }
+    ]...)
+  )
 }
 
 resource "argocd_repository_credentials" "manifests_repo_creds" {
@@ -31,8 +63,9 @@ resource "argocd_repository" "helm_chart_repo" {
 
 resource "argocd_application" "ekai-saas" {
   metadata {
-    name      = "ekai-saas-${var.env}"
-    namespace = "argocd"
+    name        = "ekai-saas-${var.env}"
+    namespace   = "argocd"
+    annotations = local.image_updater_annotations
   }
 
   spec {
