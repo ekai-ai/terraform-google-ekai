@@ -135,6 +135,19 @@ else
   gcloud iam service-accounts create "${SA_NAME}" \
     --project="${PROJECT_ID}" \
     --display-name="Ekai Terraform deployer (${ENV})"
+
+  # A freshly created SA isn't always immediately visible to the Resource
+  # Manager IAM policy-binding API -- add-iam-policy-binding right after
+  # create can fail with "Service account ... does not exist" even though
+  # it was just created. Poll until it resolves instead of racing it.
+  echo "==> Waiting for the new service account to propagate..."
+  for i in $(seq 1 20); do
+    if gcloud iam service-accounts describe "${SA_EMAIL}" --project="${PROJECT_ID}" >/dev/null 2>&1; then
+      echo "✓ Service account is visible."
+      break
+    fi
+    sleep 3
+  done
 fi
 
 # Predefined roles cover almost everything a single-purpose deployer identity
