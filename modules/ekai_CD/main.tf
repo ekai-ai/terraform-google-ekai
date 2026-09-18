@@ -21,7 +21,12 @@ locals {
 
   image_updater_annotations = var.source_type != "helm" ? {} : merge(
     {
-      "argocd-image-updater.argoproj.io/image-list"        = join(",", [for alias, path in local.image_updater_images : "${alias}=public.ecr.aws/s7m9t1b0/ekai/ekai-${alias}"])
+      # ":latest" is required here, not optional -- the "digest" strategy
+      # needs a specific tag to watch for digest changes; confirmed live
+      # (argocd-image-updater v1.3.0) that omitting it fails every image
+      # with "cannot use update strategy 'digest' ... without a version
+      # constraint", even though the tag itself never changes.
+      "argocd-image-updater.argoproj.io/image-list"        = join(",", [for alias, path in local.image_updater_images : "${alias}=public.ecr.aws/s7m9t1b0/ekai/ekai-${alias}:latest"])
       "argocd-image-updater.argoproj.io/write-back-method" = "argocd"
     },
     merge([
@@ -112,6 +117,36 @@ resource "argocd_application" "ekai-saas" {
     argocd_repository.helm_chart_repo,
     time_sleep.wait_for_argocd_prune,
   ]
+}
+
+# argocd-image-updater (v1.3.0+) doesn't scan every Application's annotations
+# on its own anymore -- it only acts on Applications matched by an
+# ImageUpdater CR's applicationRefs. useAnnotations = true tells it to read
+# the classic argocd-image-updater.argoproj.io/* annotations already set on
+# argocd_application.ekai-saas above, rather than requiring image config
+# to be duplicated into this CR's own images[] field. Confirmed live: without
+# this CR, the controller logs "No ImageUpdater CRs to process" and never
+# looks at the Application at all, no matter what annotations it carries.
+resource "kubectl_manifest" "image_updater" {
+  count = var.source_type == "helm" ? 1 : 0
+
+  yaml_body = yamlencode({
+    apiVersion = "argocd-image-updater.argoproj.io/v1alpha1"
+    kind       = "ImageUpdater"
+    metadata = {
+      name      = "ekai-saas"
+      namespace = "argocd"
+    }
+    spec = {
+      applicationRefs = [{
+        namePattern    = "ekai-saas-*"
+        useAnnotations = true
+      }]
+    }
+  })
+
+  force_conflicts = true
+  depends_on      = [argocd_application.ekai-saas]
 }
 
 # The var.ekai_namespace Kubernetes namespace itself is created by the caller
