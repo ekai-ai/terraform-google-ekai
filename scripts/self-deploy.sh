@@ -42,9 +42,21 @@ export CLOUDSDK_COMPONENT_MANAGER_DISABLE_UPDATE_CHECK=1
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
+SKIP_DNS_WAIT=0
+ARGS=()
+for arg in "$@"; do
+  case "$arg" in
+    --skip-dns-wait) SKIP_DNS_WAIT=1 ;;
+    *) ARGS+=("$arg") ;;
+  esac
+done
+set -- "${ARGS[@]}"
+
 if [[ $# -lt 1 ]]; then
-  echo "Usage: $0 <ENV>"
-  echo "  ENV  must have a matching env/<ENV>.tfvars (e.g. customer)"
+  echo "Usage: $0 [--skip-dns-wait] <ENV>"
+  echo "  ENV              must have a matching env/<ENV>.tfvars (e.g. customer)"
+  echo "  --skip-dns-wait  don't poll for DNS propagation -- print the nameservers"
+  echo "                   and continue straight to the cicd apply"
   exit 1
 fi
 ENV="$1"
@@ -329,22 +341,26 @@ if [[ "${MANAGE_DNS_ZONE}" == "true" ]]; then
     echo "zone) pointing at each of these nameservers:"
     echo "${ZONE_NS}" | sed 's/^/  /'
     echo
-    read -rp "Press Enter once you've added it (Ctrl-C to do this later and re-run) " _ </dev/tty
-    echo "==> Checking DNS delegation (this can take several minutes to propagate)..."
-    for i in $(seq 1 40); do
-      RESOLVED=$(dig +short NS "${DNS_ZONE}" @8.8.8.8 2>/dev/null | sed 's/\.$//' | sort)
-      if [[ -n "${RESOLVED}" && "${RESOLVED}" == "${ZONE_NS}" ]]; then
-        echo "✓ DNS delegation confirmed."
-        break
+    if [[ "${SKIP_DNS_WAIT}" -eq 1 ]]; then
+      echo "==> DNS wait skipped."
+    else
+      read -rp "Press Enter once you've added it (Ctrl-C to do this later and re-run) " _ </dev/tty
+      echo "==> Checking DNS delegation (this can take several minutes to propagate)..."
+      for i in $(seq 1 40); do
+        RESOLVED=$(dig +short NS "${DNS_ZONE}" @8.8.8.8 2>/dev/null | sed 's/\.$//' | sort)
+        if [[ -n "${RESOLVED}" && "${RESOLVED}" == "${ZONE_NS}" ]]; then
+          echo "✓ DNS delegation confirmed."
+          break
+        fi
+        echo "  Not propagated yet (attempt ${i}/40) — waiting 15s..."
+        sleep 15
+      done
+      if [[ "${RESOLVED}" != "${ZONE_NS}" ]]; then
+        echo "⚠ Still not resolving after 10 minutes — the ArgoCD/app TLS cert"
+        echo "  will keep failing until this delegation is correct. cert-manager"
+        echo "  retries automatically in the background once it is; no need to"
+        echo "  re-run this script for that."
       fi
-      echo "  Not propagated yet (attempt ${i}/40) — waiting 15s..."
-      sleep 15
-    done
-    if [[ "${RESOLVED}" != "${ZONE_NS}" ]]; then
-      echo "⚠ Still not resolving after 10 minutes — the ArgoCD/app TLS cert"
-      echo "  will keep failing until this delegation is correct. cert-manager"
-      echo "  retries automatically in the background once it is; no need to"
-      echo "  re-run this script for that."
     fi
   fi
 fi
