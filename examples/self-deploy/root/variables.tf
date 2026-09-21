@@ -107,9 +107,9 @@ variable "cluster_name" {
 }
 
 variable "node_machine_type" {
-  description = "Compute Engine machine type for cluster nodes (e.g. e2-standard-4)."
+  description = "Compute Engine machine type for cluster nodes (e.g. e2-standard-8)."
   type        = string
-  default     = "e2-standard-4"
+  default     = "e2-standard-8"
 }
 
 variable "min_nodes" {

@@ -58,7 +58,7 @@ services_cidr = "10.29.0.0/20" # secondary range for GKE services (ClusterIP)
 # GKE has native node-pool autoscaling (unlike EKS) -- no separate Cluster
 # Autoscaler to install. min_nodes is the floor, max_nodes the ceiling; GKE
 # scales between them on its own based on pending pod resource requests.
-node_machine_type = "e2-standard-4"
+node_machine_type = "e2-standard-8"
 min_nodes         = 3
 max_nodes         = 5
 
