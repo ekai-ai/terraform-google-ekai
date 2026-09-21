@@ -195,9 +195,19 @@ echo "✓ Project-level roles granted to ${SA_EMAIL}."
 # never returns it again either), and this script always truncates
 # SECRETS_FILE. Old keys are deleted outright (GCP has no "deactivate", and
 # no 2-key limit like AWS to work around).
-mapfile -t OLD_KEYS < <(gcloud iam service-accounts keys list \
+# Portable read-into-array (not `mapfile` -- that's Bash 4+ only, and macOS's
+# system /bin/bash is still 3.2, so `mapfile` fails there with "command not
+# found" if it's what `env bash` resolves to).
+OLD_KEYS=()
+while IFS= read -r KEY_LINE; do
+  [[ -n "${KEY_LINE}" ]] && OLD_KEYS+=("${KEY_LINE}")
+done < <(gcloud iam service-accounts keys list \
   --iam-account="${SA_EMAIL}" --managed-by=user --format='value(name)')
-for KEY in "${OLD_KEYS[@]}"; do
+# ${OLD_KEYS[@]} on a *declared-but-empty* array throws "unbound variable"
+# under `set -u` on Bash 3.2 (macOS's system bash) -- fixed in Bash 4.4+, but
+# not there yet. The common case (a fresh SA with no existing keys) is
+# exactly when OLD_KEYS is empty, so guard the expansion.
+for KEY in "${OLD_KEYS[@]+"${OLD_KEYS[@]}"}"; do
   echo "==> Deleting previous key ${KEY##*/}..."
   gcloud iam service-accounts keys delete "${KEY##*/}" --iam-account="${SA_EMAIL}" --quiet
 done
