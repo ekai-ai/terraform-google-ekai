@@ -430,7 +430,7 @@ CERT_NAME="${ENV}-wildcard-tls"
 echo
 echo "==> Waiting for the wildcard TLS certificate to be issued..."
 CERT_READY=false
-for i in $(seq 1 20); do
+for i in $(seq 1 4); do
   if [[ "$(kubectl get certificate "${CERT_NAME}" -n cert-manager -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null)" == "True" ]]; then
     CERT_READY=true
     break
@@ -446,12 +446,12 @@ if [[ "${CERT_READY}" != "true" ]]; then
   # Only one Certificate exists per self-service cluster, so clearing every
   # Order in the namespace is equivalent to clearing this one, without
   # needing to match its randomly-suffixed name.
-  echo "⚠ Not ready after 10 minutes -- forcing a fresh cert-manager attempt..."
+  echo "⚠ Not ready after 2 minutes -- forcing a fresh cert-manager attempt..."
   kubectl delete order -n cert-manager --all --ignore-not-found=true >/dev/null 2>&1 || true
   kubectl delete pod -n cert-manager -l app.kubernetes.io/component=controller --ignore-not-found=true >/dev/null 2>&1 || true
   kubectl wait --for=condition=Ready pod -n cert-manager -l app.kubernetes.io/component=controller --timeout=90s >/dev/null 2>&1 || true
 
-  for i in $(seq 1 20); do
+  for i in $(seq 1 6); do
     if [[ "$(kubectl get certificate "${CERT_NAME}" -n cert-manager -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null)" == "True" ]]; then
       CERT_READY=true
       break
