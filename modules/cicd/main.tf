@@ -324,14 +324,18 @@ locals {
       # Bucket/SA names below must match what the platform submodule
       # actually creates (modules/platform/main.tf) -- both are derived
       # from var.env only, no separate output plumbing needed.
-      workspace = var.enable_erd_gcs_fuse ? {
-        type = "gcsFuse"
-        gcsFuse = {
+      #
+      # Field-level ternaries, not one big object ternary -- Terraform
+      # requires both branches of a conditional to share one type, and an
+      # object with a "gcsFuse" attribute vs. one without isn't unifiable.
+      # null is valid for any type, so it works per-field instead.
+      workspace = {
+        type             = var.enable_erd_gcs_fuse ? "gcsFuse" : "pvc"
+        storageClassName = var.enable_erd_gcs_fuse ? null : var.erd_storage_class
+        gcsFuse = var.enable_erd_gcs_fuse ? {
           bucketName         = "ekai-${var.env}-erd-workspace"
           serviceAccountName = "ekai-erd-sa"
-        }
-        } : {
-        storageClassName = var.erd_storage_class
+        } : null
       }
     }
     ingress = {
