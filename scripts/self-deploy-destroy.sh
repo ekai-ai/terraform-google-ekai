@@ -90,7 +90,19 @@ SA_EMAIL="${SA_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
 OUT_DIR="${REPO_ROOT}/.self-deploy"
 KEY_FILE="${OUT_DIR}/${ENV}-deployer-key.json"
 
-if ! gcloud iam service-accounts describe "${SA_EMAIL}" --project="${PROJECT_ID}" >/dev/null 2>&1; then
+# IAM's describe API is eventually consistent -- if this runs right after
+# self-deploy.sh created the SA, a single describe can still say "not found"
+# even though the SA exists. Retry before treating it as a real failure.
+SA_FOUND=false
+for i in $(seq 1 20); do
+  if gcloud iam service-accounts describe "${SA_EMAIL}" --project="${PROJECT_ID}" >/dev/null 2>&1; then
+    SA_FOUND=true
+    break
+  fi
+  sleep 3
+done
+
+if [[ "${SA_FOUND}" != "true" ]]; then
   echo "ERROR: deployer service account ${SA_EMAIL} not found — was self-deploy.sh run for this env?"
   exit 1
 fi
