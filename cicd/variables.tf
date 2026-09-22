@@ -77,9 +77,15 @@ variable "image_tag" {
 }
 
 variable "erd_storage_class" {
-  description = "StorageClass for ERD's workspace PVC (cicd_provider = \"none\" only) — passed through as the ekai-saas chart's erd.workspace.storageClassName."
+  description = "StorageClass for ERD's workspace PVC (cicd_provider = \"none\" only) — passed through as the ekai-saas chart's erd.workspace.storageClassName. Ignored when enable_erd_gcs_fuse = true."
   type        = string
   default     = "standard-rwo"
+}
+
+variable "enable_erd_gcs_fuse" {
+  description = "Back ERD's shared workspace with a GCS bucket (via the GCS FUSE CSI driver) instead of a ReadWriteOnce PVC (cicd_provider = \"none\" only). Avoids Multi-Attach scheduling deadlocks when erd/erd-worker/document-worker/profile-worker land on different nodes. Requires the platform submodule's GCS bucket + Workload Identity SA (created unconditionally there)."
+  type        = bool
+  default     = false
 }
 
 variable "ingress_class_name" {
@@ -104,13 +110,13 @@ variable "secret_value_overrides" {
 variable "pipelines" {
   description = "Map of service CI/CD pipeline definitions. Add entries in .tfvars — no source changes needed."
   type = map(object({
-    branch          = string                              # source branch to trigger on (e.g. "main")
-    github_repo     = string                               # repository name only (e.g. "my-app"), NOT "org/repo"
-    dockerfile      = optional(string, "Dockerfile")       # path to Dockerfile relative to repo root
-    build_context   = optional(string, ".")                # Docker build context directory (default: repo root)
-    manifest_folder = optional(string, "manifest-files")   # folder inside deployment-files repo
-    manifest_file   = string                               # filename of the K8s manifest to patch (e.g. "deployment.yaml")
-    ingresshost     = optional(string, "")                 # public hostname for Cloud DNS record (empty = skip)
+    branch          = string                             # source branch to trigger on (e.g. "main")
+    github_repo     = string                             # repository name only (e.g. "my-app"), NOT "org/repo"
+    dockerfile      = optional(string, "Dockerfile")     # path to Dockerfile relative to repo root
+    build_context   = optional(string, ".")              # Docker build context directory (default: repo root)
+    manifest_folder = optional(string, "manifest-files") # folder inside deployment-files repo
+    manifest_file   = string                             # filename of the K8s manifest to patch (e.g. "deployment.yaml")
+    ingresshost     = optional(string, "")               # public hostname for Cloud DNS record (empty = skip)
   }))
   default = {}
 }

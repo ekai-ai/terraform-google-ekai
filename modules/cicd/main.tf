@@ -49,10 +49,10 @@ data "google_secret_manager_secret_version" "master" {
 }
 
 locals {
-  _secret               = local.self_service ? {} : jsondecode(data.google_secret_manager_secret_version.master[0].secret_data)
-  github_token          = local.self_service ? "" : local._secret["github_token"]
-  github_username       = local.self_service ? "" : local._secret["github_username"]
-  github_email          = local.self_service ? "" : local._secret["github_email"]
+  _secret         = local.self_service ? {} : jsondecode(data.google_secret_manager_secret_version.master[0].secret_data)
+  github_token    = local.self_service ? "" : local._secret["github_token"]
+  github_username = local.self_service ? "" : local._secret["github_username"]
+  github_email    = local.self_service ? "" : local._secret["github_email"]
   # formerly `data.terraform_remote_state.platform.outputs.argocd_admin_password_plaintext`
   argocd_admin_password = local.self_service ? var.argocd_admin_password_plaintext : local._secret["argocd_admin_password_plain"]
 
@@ -321,7 +321,16 @@ locals {
     secretName         = "ekai-${var.env}"
     serviceAccountName = "ekai-app-sa"
     erd = {
-      workspace = {
+      # Bucket/SA names below must match what the platform submodule
+      # actually creates (modules/platform/main.tf) -- both are derived
+      # from var.env only, no separate output plumbing needed.
+      workspace = var.enable_erd_gcs_fuse ? {
+        type = "gcsFuse"
+        gcsFuse = {
+          bucketName         = "ekai-${var.env}-erd-workspace"
+          serviceAccountName = "ekai-erd-sa"
+        }
+        } : {
         storageClassName = var.erd_storage_class
       }
     }
