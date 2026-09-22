@@ -102,14 +102,13 @@ image_tag                        = "latest"
 helm_chart_repo_url = "public.ecr.aws/s7m9t1b0/ekai-helm"
 helm_chart_version  = "*"
 
-# erd_storage_class intentionally left unset -- defaults to "standard-rwo".
-# ERD's workspace is a ReadWriteOnce PVC shared by 4 pods (erd/erd-worker/
-# documentWorker/profileWorker); it only ever attaches to one node at a
-# time, so a rollout that spreads those pods across nodes can deadlock with
-# Multi-Attach errors. Set enable_erd_gcs_fuse = true below instead to back
-# the workspace with a GCS bucket (no such limit) -- recommended if you hit
-# this.
-# enable_erd_gcs_fuse = true
+# enable_erd_gcs_fuse intentionally left unset -- defaults to true. ERD's
+# workspace is shared by 4 pods (erd/erd-worker/documentWorker/
+# profileWorker); the alternative (a ReadWriteOnce PVC, erd_storage_class
+# below) only ever attaches to one node at a time, so a rollout that
+# spreads those pods across nodes can deadlock with Multi-Attach errors.
+# Set enable_erd_gcs_fuse = false below only if you need the old PVC
+# behavior for some reason.
 
 # dns_zone_name intentionally left unset -- defaults to "<env>-zone" (created
 # by the bootstrap submodule), so a different env name doesn't require also
