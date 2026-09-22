@@ -180,6 +180,10 @@ PROJECT_ROLES=(
   roles/iam.serviceAccountAdmin
   roles/iam.serviceAccountUser
   roles/resourcemanager.projectIamAdmin
+  # Needed for platform's google_storage_bucket.erd_workspace (+ its bucket
+  # IAM binding) -- the state-bucket-scoped roles/storage.admin grant below
+  # only covers that one bucket, not project-wide bucket creation.
+  roles/storage.admin
 )
 for ROLE in "${PROJECT_ROLES[@]}"; do
   gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
