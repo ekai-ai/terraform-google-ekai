@@ -186,11 +186,25 @@ PROJECT_ROLES=(
   roles/storage.admin
 )
 for ROLE in "${PROJECT_ROLES[@]}"; do
-  gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
-    --member="serviceAccount:${SA_EMAIL}" \
-    --role="${ROLE}" \
-    --condition=None \
-    --quiet >/dev/null
+  # Rapid sequential add-iam-policy-binding calls each do their own
+  # read-modify-write of the WHOLE project policy -- back-to-back calls can
+  # race against Google's own eventual consistency and fail with an ETag
+  # conflict ("concurrent policy changes") even from this single-threaded
+  # loop. Retry with backoff instead of failing the whole script on it.
+  for attempt in $(seq 1 5); do
+    if gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
+      --member="serviceAccount:${SA_EMAIL}" \
+      --role="${ROLE}" \
+      --condition=None \
+      --quiet >/dev/null 2>&1; then
+      break
+    fi
+    if [[ "${attempt}" -eq 5 ]]; then
+      echo "ERROR: failed to grant ${ROLE} to ${SA_EMAIL} after 5 attempts."
+      exit 1
+    fi
+    sleep $((attempt * 2))
+  done
 done
 echo "✓ Project-level roles granted to ${SA_EMAIL}."
 
