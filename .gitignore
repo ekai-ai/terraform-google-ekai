@@ -28,7 +28,9 @@ override.tf.json
 
 .DS_Store
 
-# NOTE: env/*.tfvars is intentionally NOT ignored — customer.tfvars (the
-# template) and any env/<name>.tfvars you create from it are meant to be
-# tracked. Keep secrets out of tfvars; use secret_value_overrides or edit the
-# app secret directly instead.
+# Only customer.tfvars (the template, no real values) is tracked. Every
+# env/<name>.tfvars created from it is local-only and gitignored — client
+# deployments have ended up with real secrets in secret_value_overrides
+# (e.g. EKAI_DEPLOY_TOKEN), which must never land in this public repo.
+env/*.tfvars
+!env/customer.tfvars
