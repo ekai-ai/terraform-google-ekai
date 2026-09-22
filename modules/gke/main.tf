@@ -66,6 +66,15 @@ resource "google_container_cluster" "main" {
     network_policy_config {
       disabled = false
     }
+
+    # ERD's shared workspace is mounted via GCS FUSE, not a ReadWriteOnce
+    # PVC -- avoids the single-node-attach limit that deadlocks any rollout
+    # where erd/erd-worker/document-worker/profile-worker land on different
+    # nodes (confirmed live). Declared explicitly so Terraform doesn't treat
+    # this as unmanaged drift and disable it on a future apply.
+    gcs_fuse_csi_driver_config {
+      enabled = true
+    }
   }
 
   # Workload Identity

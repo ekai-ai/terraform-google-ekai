@@ -158,6 +158,56 @@ resource "google_service_account_iam_member" "ekai_app_workload_identity" {
   member              = "serviceAccount:${var.project_id}.svc.id.goog[ekai-saas/ekai-app-sa]"
 }
 
+# ── ERD workspace GCS FUSE bucket + Workload Identity ────────────────────────
+# erd/erd-worker/document-worker/profile-worker share one scratch workspace.
+# A ReadWriteOnce PVC only ever attaches to one node at a time -- any rollout
+# that spreads those pods across nodes deadlocks with Multi-Attach errors
+# (confirmed live). GCS FUSE mounts a real bucket instead, with no
+# node-attach limit. Same fix already proven on Ekai's own "beta" env.
+resource "google_storage_bucket" "erd_workspace" {
+  project                     = var.project_id
+  name                        = "ekai-${var.env}-erd-workspace"
+  location                    = var.region
+  storage_class               = "STANDARD"
+  uniform_bucket_level_access = true
+}
+
+resource "google_service_account" "erd_gcsfuse" {
+  project      = var.project_id
+  account_id   = "${var.env}-erd-gcsfuse-sa"
+  display_name = "ERD workspace GCS FUSE Workload Identity SA (${var.env})"
+}
+
+resource "google_storage_bucket_iam_member" "erd_gcsfuse" {
+  bucket = google_storage_bucket.erd_workspace.name
+  role   = "roles/storage.objectUser"
+  member = "serviceAccount:${google_service_account.erd_gcsfuse.email}"
+}
+
+resource "google_service_account_iam_member" "erd_gcsfuse_workload_identity" {
+  service_account_id = google_service_account.erd_gcsfuse.name
+  role                = "roles/iam.workloadIdentityUser"
+  member              = "serviceAccount:${var.project_id}.svc.id.goog[ekai-saas/ekai-erd-sa]"
+}
+
+# Same pattern as kubernetes_service_account.ekai_app above -- created here
+# (not by the chart) so it exists before ArgoCD syncs the ERD deployments
+# that reference it.
+resource "kubernetes_service_account" "ekai_erd" {
+  metadata {
+    name      = "ekai-erd-sa"
+    namespace = kubernetes_namespace.ekai_saas.metadata[0].name
+    labels = {
+      app     = "ekai-erd"
+      managed = "terraform"
+    }
+    annotations = {
+      "iam.gke.io/gcp-service-account" = google_service_account.erd_gcsfuse.email
+    }
+  }
+  depends_on = [kubernetes_namespace.ekai_saas]
+}
+
 # ── External Secrets Operator (Workload Identity + Helm + ClusterSecretStore) ─
 # GSA is bound to the ESO K8s SA via Workload Identity Federation.
 # No service-account key is stored in the cluster.
