@@ -423,6 +423,50 @@ cd "${REPO_ROOT}/examples/self-deploy/cicd"
 terraform init -upgrade -reconfigure -backend-config="../../../env/backend-${ENV}-cicd.tfbackend"
 terraform apply -auto-approve -compact-warnings -var-file="../../../env/${ENV}.tfvars"
 
+# The Certificate object's name is always "${ENV}-wildcard-tls" regardless of
+# what tls_secret_name is set to (that only names the Secret it produces) --
+# see modules/platform/main.tf's kubectl_manifest.wildcard_cert.
+CERT_NAME="${ENV}-wildcard-tls"
+echo
+echo "==> Waiting for the wildcard TLS certificate to be issued..."
+CERT_READY=false
+for i in $(seq 1 20); do
+  if [[ "$(kubectl get certificate "${CERT_NAME}" -n cert-manager -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null)" == "True" ]]; then
+    CERT_READY=true
+    break
+  fi
+  sleep 30
+done
+
+if [[ "${CERT_READY}" != "true" ]]; then
+  # cert-manager's DNS-01 propagation self-check can get stuck reporting
+  # "not yet propagated" indefinitely even once DNS is genuinely fine --
+  # confirmed live: a stale internal cache in the controller, not a real DNS
+  # problem. Deleting the Order and restarting the controller pod clears it.
+  # Only one Certificate exists per self-service cluster, so clearing every
+  # Order in the namespace is equivalent to clearing this one, without
+  # needing to match its randomly-suffixed name.
+  echo "⚠ Not ready after 10 minutes -- forcing a fresh cert-manager attempt..."
+  kubectl delete order -n cert-manager --all --ignore-not-found=true >/dev/null 2>&1 || true
+  kubectl delete pod -n cert-manager -l app.kubernetes.io/component=controller --ignore-not-found=true >/dev/null 2>&1 || true
+  kubectl wait --for=condition=Ready pod -n cert-manager -l app.kubernetes.io/component=controller --timeout=90s >/dev/null 2>&1 || true
+
+  for i in $(seq 1 20); do
+    if [[ "$(kubectl get certificate "${CERT_NAME}" -n cert-manager -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null)" == "True" ]]; then
+      CERT_READY=true
+      break
+    fi
+    sleep 30
+  done
+fi
+
+if [[ "${CERT_READY}" == "true" ]]; then
+  echo "✓ TLS certificate issued."
+else
+  echo "⚠ TLS certificate still not ready -- ArgoCD/app URLs will show cert errors"
+  echo "  until it resolves on its own. Check: kubectl get certificate ${CERT_NAME} -n cert-manager"
+fi
+
 cleanup_pf
 trap - EXIT
 echo "==> Restored your original gcloud identity (${ORIGINAL_ACCOUNT})."
