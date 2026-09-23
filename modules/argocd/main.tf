@@ -16,16 +16,26 @@ resource "helm_release" "argocd" {
       params = {
         "server.insecure" = "true"
       }
+      # Default (180s) re-renders every Application every 3 min, which for
+      # self-service's helm_chart_version = "*" means re-listing every tag
+      # in the OCI chart repo that often. Combined with Image Updater's own
+      # polling against the same public registry, this hit ECR Public's
+      # anonymous rate limit (confirmed live: repo-server 429s, "Failed to
+      # load target state"). Not needed this often for a chart that only
+      # actually changes on a new Ekai release.
+      cm = {
+        "timeout.reconciliation" = "600s"
+      }
       secret = {
         argocdServerAdminPassword = var.argocd_admin_password_hashed
       }
     }
     server = {
       ingress = {
-        enabled           = true
-        ingressClassName  = "nginx"
-        hostname          = var.argocd_ingress_host
-        hosts             = [var.argocd_ingress_host]
+        enabled          = true
+        ingressClassName = "nginx"
+        hostname         = var.argocd_ingress_host
+        hosts            = [var.argocd_ingress_host]
         annotations = {
           "nginx.ingress.kubernetes.io/force-ssl-redirect" = "true"
           "nginx.ingress.kubernetes.io/rewrite-target"     = "/"
@@ -57,6 +67,15 @@ resource "helm_release" "argocd_image_updater" {
   namespace  = kubernetes_namespace.argocd.metadata[0].name
   chart      = "argocd-image-updater"
   repository = "https://argoproj.github.io/argo-helm"
+
+  # Default (2m) polls all 5 tracked images against the same public
+  # registry ArgoCD's own chart lookup hits -- combined, this triggered
+  # ECR Public's anonymous rate limit (confirmed live). A slower interval
+  # trades a few extra minutes of lag before a new push is picked up for
+  # not getting rate-limited.
+  values = [yamlencode({
+    extraArgs = ["--interval", "10m"]
+  })]
 
   depends_on = [helm_release.argocd]
 }
