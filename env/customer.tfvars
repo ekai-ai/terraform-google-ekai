@@ -80,7 +80,7 @@ argocd_namespace = "argocd"
 # argocd_admin_password_hashed intentionally omitted -- cicd_provider = "none"
 # generates its own ArgoCD admin password + hash directly (platform submodule).
 acme_email      = "REPLACE_ME"
-tls_secret_name = "customer-wildcard-tls"
+tls_secret_name = "ekai-wildcard-tls"
 
 # ─── cicd/ (separate apply) — self-service mode ────────────────────────────────
 # cicd_provider = "none" is the entire point of this file: no Cloud Build, no
