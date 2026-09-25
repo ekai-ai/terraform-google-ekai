@@ -80,13 +80,6 @@ gcloud secrets versions access latest --secret=ekai-customer --project=<your-pro
   ' | gcloud secrets versions add ekai-customer --project=<your-project> --data-file=-
 ```
 
-LLM keys (`ANTHROPIC_API_KEY`/`OPENAI_API_KEY`), Cognito, and Document AI
-(`SEMANTICS__*`) ship blank — out of scope for this pass, same as GitHub sync
-and Langfuse tracing. Set them the same way, via `gcloud secrets versions
-add`, if/when you need those features. The app picks up any secret update
-automatically within about a minute (ESO syncs it into the cluster, Reloader
-restarts the affected pods) — no `terraform apply` needed for this step.
-
 Optional — check the ArgoCD URL/password, Cloud DNS nameservers, portal URL,
 and app secret's name:
 
