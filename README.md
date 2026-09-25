@@ -104,6 +104,13 @@ terraform output -C examples/self-deploy/cicd
 Destroys everything this created, with confirmation prompts at each
 destructive stage. Safe to re-run if it fails partway.
 
+**Lost `env/<name>.tfvars`?** As long as
+`gs://ekai-terraform-state-<name>-<project_id>` still exists, run
+`./scripts/recover-tfvars.sh <name> <project_id>` first — it rebuilds both
+`env/<name>.tfvars` and its backend config files straight from state, then
+prints the `terraform plan` command to verify the result before you trust
+it with a destroy.
+
 ## Troubleshooting
 
 **`invalid_grant` / `reauth related error` from gcloud/Terraform** — your
@@ -140,21 +147,5 @@ interrupted prior run (it can't describe itself). Check with
 `ekai-terraform-<env>@...` instead of your own account, run
 `gcloud config set account <your-account>` and retry.
 
-**Lost `env/<name>.tfvars` (or its `backend-*.tfbackend` files) before you
-could destroy** — as long as `gs://ekai-terraform-state-<name>-<project_id>`
-still exists, nothing is actually lost; the values just need pulling back
-out of the state file itself:
-
-1. Recreate `env/backend-<name>.tfbackend` / `-cicd.tfbackend` — just the
-   bucket name and `<name>/combined.tfstate` / `<name>/cicd.tfstate`
-   prefixes, no values to recover.
-2. Pull `env/<name>.tfvars`'s values (`project_id`, `region`, `dns_zone`,
-   `node_machine_type`, `tls_secret_name`, `acme_email`, ...) straight from
-   the state's resource attributes — every one of them is stored there
-   (e.g. `gsutil cat gs://.../combined.tfstate/default.tfstate | jq` and
-   read the relevant resource's `instances[0].attributes`).
-3. Before destroying anything, verify with a normal `terraform plan
-   -var-file=env/<name>.tfvars` — it should show only in-place changes (or
-   nothing), never `# forces replacement` or a large add/destroy count. That
-   confirms the reconstructed values actually match the live resources
-   before you trust them with a destroy.
+**Lost `env/<name>.tfvars`** — see `./scripts/recover-tfvars.sh` under
+[Tearing down](#tearing-down).
