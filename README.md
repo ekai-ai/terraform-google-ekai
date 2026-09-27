@@ -97,12 +97,13 @@ terraform output -C examples/self-deploy/cicd
 Destroys everything this created, with confirmation prompts at each
 destructive stage. Safe to re-run if it fails partway.
 
-**Lost `env/<name>.tfvars`?** As long as
-`gs://ekai-terraform-state-<name>-<project_id>` still exists, run
-`./scripts/recover-tfvars.sh <name> <project_id>` first — it rebuilds both
-`env/<name>.tfvars` and its backend config files straight from state, then
-prints the `terraform plan` command to verify the result before you trust
-it with a destroy.
+**Lost `env/<name>.tfvars`?** `self-deploy-destroy.sh` notices it's missing,
+asks for the GCP project ID, and rebuilds it (and its backend config files)
+straight from `gs://ekai-terraform-state-<name>-<project_id>` before
+continuing — as long as that bucket still exists, nothing is actually lost.
+Run `./scripts/recover-tfvars.sh <name> <project_id>` directly instead if
+you want to check the recovered values (with a `terraform plan`) before
+trusting them with a destroy.
 
 ## Troubleshooting
 

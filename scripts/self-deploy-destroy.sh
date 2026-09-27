@@ -50,8 +50,22 @@ ENV="$1"
 TFVARS="${REPO_ROOT}/env/${ENV}.tfvars"
 
 if [[ ! -f "${TFVARS}" ]]; then
-  echo "ERROR: ${TFVARS} not found."
-  exit 1
+  echo "==> ${TFVARS} not found -- attempting to recover it from Terraform state."
+  read -rp "GCP project ID this env was deployed into: " RECOVER_PROJECT_ID </dev/tty
+  if [[ -z "${RECOVER_PROJECT_ID}" ]]; then
+    echo "ERROR: project ID is required to recover ${TFVARS}."
+    exit 1
+  fi
+  "${SCRIPT_DIR}/recover-tfvars.sh" "${ENV}" "${RECOVER_PROJECT_ID}"
+  if [[ ! -f "${TFVARS}" ]]; then
+    echo "ERROR: recovery failed -- ${TFVARS} still doesn't exist."
+    exit 1
+  fi
+  echo
+  echo "⚠ Recovered ${TFVARS} from state. Its values weren't verified against a"
+  echo "  plan first (see recover-tfvars.sh's own note on why that matters) --"
+  echo "  proceeding anyway since this is a destroy, not an apply."
+  echo
 fi
 
 for bin in gcloud kubectl terraform jq curl; do
