@@ -5,7 +5,7 @@
 #      (argocd_url/admin creds, DNS zone info, cluster_name, region).
 #
 #   2. Values ./cicd/'s `data "terraform_remote_state" "combined"` block reads
-#      (artifact_registry_url, backend/semantics db creds, cloud_sql_ip,
+#      (artifact_registry_url, backend db creds, cloud_sql_ip,
 #      nginx_ingress_ip, argocd_admin_password_plaintext, redis_credentials,
 #      neo4j_credentials, minio_*, cluster_secret_store_name) — these exist
 #      here ONLY because ./cicd/ needs them; a human applying this config
@@ -102,25 +102,8 @@ output "backend_db_name" {
   value       = module.cluster.backend_db_name
 }
 
-output "semantics_db_username" {
-  description = "Semantics Cloud SQL DB username (cicd_provider = \"none\" only). Read by ./cicd/ to build VECTOR_DATABASE_URL."
-  value       = module.cluster.semantics_db_username
-  sensitive   = true
-}
-
-output "semantics_db_password" {
-  description = "Semantics Cloud SQL DB password (cicd_provider = \"none\" only). Read by ./cicd/ to build VECTOR_DATABASE_URL."
-  value       = module.cluster.semantics_db_password
-  sensitive   = true
-}
-
-output "semantics_db_name" {
-  description = "Semantics Cloud SQL DB name (cicd_provider = \"none\" only). Read by ./cicd/ to build VECTOR_DATABASE_URL."
-  value       = module.cluster.semantics_db_name
-}
-
 output "cloud_sql_ip" {
-  description = "Private IP address of the Cloud SQL instance. Read by ./cicd/ to build DATABASE_URL/VECTOR_DATABASE_URL."
+  description = "Private IP address of the Cloud SQL instance. Read by ./cicd/ to build DATABASE_URL."
   value       = module.cluster.cloud_sql_ip
   sensitive   = true
 }

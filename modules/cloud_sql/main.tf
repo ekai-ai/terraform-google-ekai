@@ -18,8 +18,7 @@ locals {
 # Secret Manager – read the JSON blob that holds all DB passwords.
 # Expected secret format (JSON):
 #   {
-#     "backend_db_password":   "...",
-#     "semantics_db_password": "..."
+#     "backend_db_password": "..."
 #   }
 # ---------------------------------------------------------------------------
 
@@ -38,20 +37,11 @@ resource "random_password" "backend_db" {
   special = false
 }
 
-resource "random_password" "semantics_db" {
-  count   = var.self_service ? 1 : 0
-  length  = 24
-  special = false
-}
-
 locals {
-  credentials         = var.self_service ? {} : jsondecode(data.google_secret_manager_secret_version.db_credentials[0].secret_data)
-  backend_user        = var.self_service ? "ekai_backend" : local.credentials["backend_db_username"]
-  backend_password    = var.self_service ? random_password.backend_db[0].result : local.credentials["backend_db_password"]
-  backend_db_name     = var.self_service ? "ekai_backend" : local.credentials["backend_db_name"]
-  semantics_user      = var.self_service ? "ekai_semantics" : local.credentials["semantics_db_username"]
-  semantics_password  = var.self_service ? random_password.semantics_db[0].result : local.credentials["semantics_db_password"]
-  semantics_db_name   = var.self_service ? "ekai_semantics" : local.credentials["semantics_db_name"]
+  credentials      = var.self_service ? {} : jsondecode(data.google_secret_manager_secret_version.db_credentials[0].secret_data)
+  backend_user     = var.self_service ? "ekai_backend" : local.credentials["backend_db_username"]
+  backend_password = var.self_service ? random_password.backend_db[0].result : local.credentials["backend_db_password"]
+  backend_db_name  = var.self_service ? "ekai_backend" : local.credentials["backend_db_name"]
 }
 
 # ---------------------------------------------------------------------------
@@ -183,13 +173,6 @@ resource "google_sql_user" "backend_db_user" {
   password = local.backend_password
 }
 
-resource "google_sql_user" "semantics_db_user" {
-  project  = var.project_id
-  instance = google_sql_database_instance.postgres.name
-  name     = local.semantics_user
-  password = local.semantics_password
-}
-
 # ---------------------------------------------------------------------------
 # Databases
 # ---------------------------------------------------------------------------
@@ -202,14 +185,4 @@ resource "google_sql_database" "backend_db" {
   collation = "en_US.UTF8"
 
   depends_on = [google_sql_user.backend_db_user]
-}
-
-resource "google_sql_database" "semantics_db" {
-  project   = var.project_id
-  instance  = google_sql_database_instance.postgres.name
-  name      = local.semantics_db_name
-  charset   = "UTF8"
-  collation = "en_US.UTF8"
-
-  depends_on = [google_sql_user.semantics_db_user]
 }

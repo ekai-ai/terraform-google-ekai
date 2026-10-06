@@ -63,8 +63,8 @@ min_nodes         = 3
 max_nodes         = 5
 
 # secrets_name intentionally omitted -- cicd_provider = "none" generates
-# backend/semantics DB credentials directly instead of requiring a
-# pre-existing Secret Manager secret.
+# backend DB credentials directly instead of requiring a pre-existing
+# Secret Manager secret.
 
 # ─── In-cluster Redis + Neo4j + MinIO -- the ekai-saas chart's ERD/KEDA needs
 # Redis+Neo4j, and self-service always uses in-cluster MinIO for file storage

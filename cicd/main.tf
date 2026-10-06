@@ -64,9 +64,6 @@ module "cicd" {
   backend_db_username   = data.terraform_remote_state.combined.outputs.backend_db_username
   backend_db_password   = data.terraform_remote_state.combined.outputs.backend_db_password
   backend_db_name       = data.terraform_remote_state.combined.outputs.backend_db_name
-  semantics_db_username = data.terraform_remote_state.combined.outputs.semantics_db_username
-  semantics_db_password = data.terraform_remote_state.combined.outputs.semantics_db_password
-  semantics_db_name     = data.terraform_remote_state.combined.outputs.semantics_db_name
   cloud_sql_ip          = data.terraform_remote_state.combined.outputs.cloud_sql_ip
 
   # formerly `data "terraform_remote_state" "platform"` in the original

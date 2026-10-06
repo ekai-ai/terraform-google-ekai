@@ -82,25 +82,8 @@ output "backend_db_name" {
   value       = module.infra.backend_db_name
 }
 
-output "semantics_db_username" {
-  description = "Semantics Cloud SQL DB username (cicd_provider = \"none\" only). Read by the cicd module to build VECTOR_DATABASE_URL."
-  value       = module.infra.semantics_db_username
-  sensitive   = true
-}
-
-output "semantics_db_password" {
-  description = "Semantics Cloud SQL DB password (cicd_provider = \"none\" only). Read by the cicd module to build VECTOR_DATABASE_URL."
-  value       = module.infra.semantics_db_password
-  sensitive   = true
-}
-
-output "semantics_db_name" {
-  description = "Semantics Cloud SQL DB name (cicd_provider = \"none\" only). Read by the cicd module to build VECTOR_DATABASE_URL."
-  value       = module.infra.semantics_db_name
-}
-
 output "cloud_sql_ip" {
-  description = "Private IP address of the Cloud SQL instance. Read by the cicd module to build DATABASE_URL/VECTOR_DATABASE_URL."
+  description = "Private IP address of the Cloud SQL instance. Read by the cicd module to build DATABASE_URL."
   value       = module.infra.cloud_sql_ip
   sensitive   = true
 }

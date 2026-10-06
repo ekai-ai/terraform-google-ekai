@@ -166,26 +166,6 @@ variable "backend_db_name" {
   default     = ""
 }
 
-variable "semantics_db_username" {
-  description = "Semantics Cloud SQL DB username (sourced from the cluster submodule's output, self-service only)."
-  type        = string
-  sensitive   = true
-  default     = ""
-}
-
-variable "semantics_db_password" {
-  description = "Semantics Cloud SQL DB password (sourced from the cluster submodule's output, self-service only)."
-  type        = string
-  sensitive   = true
-  default     = ""
-}
-
-variable "semantics_db_name" {
-  description = "Semantics Cloud SQL DB name (sourced from the cluster submodule's output, self-service only)."
-  type        = string
-  default     = ""
-}
-
 variable "cloud_sql_ip" {
   description = "Private IP address of the Cloud SQL instance (sourced from the cluster submodule's output)."
   type        = string

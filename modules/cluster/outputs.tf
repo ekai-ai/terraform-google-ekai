@@ -51,8 +51,8 @@ output "cloud_sql_connection_name" {
   value       = module.cloud_sql.connection_name
 }
 
-# cicd_provider = "none" only — the cicd module builds DATABASE_URL/VECTOR_DATABASE_URL
-# from these instead of reading a master Secret Manager secret.
+# cicd_provider = "none" only — the cicd module builds DATABASE_URL from
+# these instead of reading a master Secret Manager secret.
 output "backend_db_username" {
   value     = module.cloud_sql.backend_db_username
   sensitive = true
@@ -65,20 +65,6 @@ output "backend_db_password" {
 
 output "backend_db_name" {
   value = module.cloud_sql.backend_db_name
-}
-
-output "semantics_db_username" {
-  value     = module.cloud_sql.semantics_db_username
-  sensitive = true
-}
-
-output "semantics_db_password" {
-  value     = module.cloud_sql.semantics_db_password
-  sensitive = true
-}
-
-output "semantics_db_name" {
-  value = module.cloud_sql.semantics_db_name
 }
 
 # ---------------------------------------------------------------------------

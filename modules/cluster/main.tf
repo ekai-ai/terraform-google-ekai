@@ -100,12 +100,12 @@ module "cloud_sql" {
 }
 
 ###############################################################################
-# Update master secret with platform-derived DB URLs
-# After Cloud SQL is created, write DATABASE_URL and VECTOR_DATABASE_URL into
-# the master secret so ESO can sync them to pods at runtime.
+# Update master secret with platform-derived DB URL
+# After Cloud SQL is created, write DATABASE_URL into the master secret so
+# ESO can sync it to pods at runtime.
 # Mirrors the Azure pattern where the platform layer writes back to Key Vault.
 # Skipped entirely for self_service, which has no master secret -- the cicd
-# module builds these URLs directly from module.cloud_sql's own outputs instead.
+# module builds this URL directly from module.cloud_sql's own outputs instead.
 ###############################################################################
 data "google_secret_manager_secret_version" "master" {
   count      = local.self_service ? 0 : 1
@@ -120,13 +120,9 @@ locals {
   _backend_user = local.self_service ? "" : local._master["backend_db_username"]
   _backend_pass = local.self_service ? "" : local._master["backend_db_password"]
   _backend_db   = local.self_service ? "" : local._master["backend_db_name"]
-  _sem_user     = local.self_service ? "" : local._master["semantics_db_username"]
-  _sem_pass     = local.self_service ? "" : local._master["semantics_db_password"]
-  _sem_db       = local.self_service ? "" : local._master["semantics_db_name"]
 
   _updated_master = local.self_service ? {} : merge(local._master, {
-    DATABASE_URL        = "postgresql://${local._backend_user}:${local._backend_pass}@${local._sql_ip}:5432/${local._backend_db}"
-    VECTOR_DATABASE_URL = "postgresql://${local._sem_user}:${local._sem_pass}@${local._sql_ip}:5432/${local._sem_db}"
+    DATABASE_URL = "postgresql://${local._backend_user}:${local._backend_pass}@${local._sql_ip}:5432/${local._backend_db}"
   })
 }
 
