@@ -90,9 +90,16 @@ echo ""
 echo "==> Step 2: Deleting GCS state bucket gs://${BUCKET}..."
 if gcloud storage buckets describe "gs://${BUCKET}" \
      --project="${PROJECT_ID}" &>/dev/null; then
-  gcloud storage rm -r "gs://${BUCKET}/**" \
-    --project="${PROJECT_ID}" 2>/dev/null || true
-  gcloud storage buckets delete "gs://${BUCKET}" \
+  # init-state-backend.sh enables object versioning on this bucket, and
+  # Terraform rewrites default.tfstate on every init/apply/destroy -- so
+  # noncurrent versions are guaranteed to exist by the time we get here.
+  # `rm -r gs://bucket/**` only deletes LIVE versions, leaving noncurrent
+  # ones behind; `buckets delete` then fails "bucket not empty" under
+  # set -e. `rm --recursive gs://bucket` (bucket path, no wildcard) deletes
+  # every version AND the bucket itself in one call -- confirmed via
+  # `gcloud storage rm --help`: "If the path is set to a bucket ... the
+  # bucket is also deleted. This option implies the --all-versions option."
+  gcloud storage rm --recursive "gs://${BUCKET}" \
     --project="${PROJECT_ID}"
   echo "==> Bucket gs://${BUCKET} deleted."
 else
