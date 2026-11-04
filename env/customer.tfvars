@@ -37,7 +37,7 @@ region     = "us-east1"
 env        = "customer"
 
 # ─── bootstrap submodule (Cloud DNS zone + VPC) ───────────────────────────────
-dns_zone        = "customer.ekai.ai" # stand-in — a real client uses their own domain
+dns_zone        = "REPLACE_ME" # a real domain you control, e.g. "customer.com" -- see "DNS delegation" in README.md. Left as a lookalike example here before, which is easy to miss and apply fine, then hang forever on cert issuance since you don't control it.
 manage_dns_zone = true
 
 # vpc_name intentionally left unset -- defaults to "<env>-vpc", so it always
@@ -56,11 +56,20 @@ services_cidr = "10.29.0.0/20" # secondary range for GKE services (ClusterIP)
 # different env name doesn't require also updating this to match.
 
 # GKE has native node-pool autoscaling (unlike EKS) -- no separate Cluster
-# Autoscaler to install. min_nodes is the floor, max_nodes the ceiling; GKE
-# scales between them on its own based on pending pod resource requests.
+# Autoscaler to install. min_nodes/max_nodes are PER ZONE, not total -- this
+# is a regional cluster, which spreads across 3 zones by default, so actual
+# node counts are 3x these values. 1/2 below means 3-6 nodes total
+# (24-48 vCPU on e2-standard-8) -- sized to fit a fresh GCP project's
+# default regional CPU quota (commonly 24). Raise once your quota is raised.
 node_machine_type = "e2-standard-8"
-min_nodes         = 3
-max_nodes         = 5
+min_nodes         = 1
+max_nodes         = 2
+
+# enable_deletion_protection intentionally left unset -- defaults to false,
+# so `terraform destroy` always works. Set true only once this environment
+# is stable and long-lived, and set it back to false before intentionally
+# destroying it -- GKE and Cloud SQL both refuse to be destroyed while true.
+# enable_deletion_protection = true
 
 # secrets_name intentionally omitted -- cicd_provider = "none" generates
 # backend DB credentials directly instead of requiring a pre-existing
