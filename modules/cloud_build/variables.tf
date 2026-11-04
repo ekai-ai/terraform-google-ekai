@@ -23,7 +23,7 @@ variable "pipelines" {
     branch          = string                             # source branch to trigger on (e.g. "main")
     github_repo     = string                             # repository name only (e.g. "my-app"), NOT "org/repo"
     dockerfile      = optional(string, "Dockerfile")     # path to Dockerfile relative to repo root
-    build_context   = optional(string, ".")               # Docker build context (default: repo root)
+    build_context   = optional(string, ".")              # Docker build context (default: repo root)
     manifest_folder = optional(string, "manifest-files") # folder inside deployment-files repo
     manifest_file   = string                             # filename of the K8s manifest to patch (e.g. "deployment.yaml")
   }))

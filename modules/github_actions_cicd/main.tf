@@ -146,9 +146,9 @@ resource "google_service_account_iam_binding" "wif_user" {
 resource "github_actions_secret" "wif_provider" {
   for_each = local.unique_app_repos
 
-  repository      = each.key
-  secret_name     = "GCP_WORKLOAD_IDENTITY_PROVIDER"
-  value          = google_iam_workload_identity_pool_provider.github_oidc.name
+  repository  = each.key
+  secret_name = "GCP_WORKLOAD_IDENTITY_PROVIDER"
+  value       = google_iam_workload_identity_pool_provider.github_oidc.name
 
   depends_on = [google_iam_workload_identity_pool_provider.github_oidc]
 }
@@ -156,9 +156,9 @@ resource "github_actions_secret" "wif_provider" {
 resource "github_actions_secret" "service_account" {
   for_each = local.unique_app_repos
 
-  repository      = each.key
-  secret_name     = "GCP_SERVICE_ACCOUNT"
-  value          = google_service_account.github_actions[each.key].email
+  repository  = each.key
+  secret_name = "GCP_SERVICE_ACCOUNT"
+  value       = google_service_account.github_actions[each.key].email
 
   depends_on = [google_service_account.github_actions]
 }
@@ -166,25 +166,25 @@ resource "github_actions_secret" "service_account" {
 resource "github_actions_secret" "gcp_region" {
   for_each = local.unique_app_repos
 
-  repository      = each.key
-  secret_name     = "GCP_REGION"
-  value          = var.region
+  repository  = each.key
+  secret_name = "GCP_REGION"
+  value       = var.region
 }
 
 resource "github_actions_secret" "gcp_project_id" {
   for_each = local.unique_app_repos
 
-  repository      = each.key
-  secret_name     = "GCP_PROJECT_ID"
-  value          = var.project_id
+  repository  = each.key
+  secret_name = "GCP_PROJECT_ID"
+  value       = var.project_id
 }
 
 resource "github_actions_secret" "org_token_github" {
   for_each = local.unique_app_repos
 
-  repository      = each.key
-  secret_name     = "ORG_TOKEN_GITHUB"
-  value          = var.github_token
+  repository  = each.key
+  secret_name = "ORG_TOKEN_GITHUB"
+  value       = var.github_token
 }
 
 # ─── GitHub Actions workflow YAML — one per pipeline ──────────────────────────

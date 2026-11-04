@@ -40,7 +40,7 @@ resource "helm_release" "neo4j" {
 
     resources = {
       requests = { cpu = var.cpu_request, memory = var.memory_request }
-      limits   = { cpu = var.cpu_limit,   memory = var.memory_limit   }
+      limits   = { cpu = var.cpu_limit, memory = var.memory_limit }
     }
 
     # Expose only within cluster
