@@ -154,8 +154,8 @@ resource "google_project_iam_member" "ekai_app_logging_writer" {
 
 resource "google_service_account_iam_member" "ekai_app_workload_identity" {
   service_account_id = google_service_account.ekai_app.name
-  role                = "roles/iam.workloadIdentityUser"
-  member              = "serviceAccount:${var.project_id}.svc.id.goog[ekai-saas/ekai-app-sa]"
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "serviceAccount:${var.project_id}.svc.id.goog[ekai-saas/ekai-app-sa]"
 }
 
 # ── ERD workspace GCS FUSE bucket + Workload Identity ────────────────────────
@@ -186,8 +186,8 @@ resource "google_storage_bucket_iam_member" "erd_gcsfuse" {
 
 resource "google_service_account_iam_member" "erd_gcsfuse_workload_identity" {
   service_account_id = google_service_account.erd_gcsfuse.name
-  role                = "roles/iam.workloadIdentityUser"
-  member              = "serviceAccount:${var.project_id}.svc.id.goog[ekai-saas/ekai-erd-sa]"
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "serviceAccount:${var.project_id}.svc.id.goog[ekai-saas/ekai-erd-sa]"
 }
 
 # Same pattern as kubernetes_service_account.ekai_app above -- created here
@@ -436,6 +436,149 @@ resource "kubectl_manifest" "wildcard_cert" {
   })
 
   depends_on = [kubectl_manifest.cluster_issuer, helm_release.reflector]
+}
+
+# ── Wildcard cert self-heal ───────────────────────────────────────────────────
+# DNS delegation for a self-service client is a human, out-of-band step --
+# self-deploy.sh's own recovery for cert-manager's DNS-01 stale-cache bug
+# (deleting stuck Orders + restarting the controller) is one-shot and
+# time-boxed to ~5 minutes before the script gives up. If delegation lands
+# after that window, the Certificate is left wedged on the same stale cache
+# forever, with nothing left to un-stick it -- confirmed live (Secunetics GCP
+# feedback, 2026-10: still Ready=False days after install, needing the exact
+# same manual recovery re-run by hand).
+#
+# This CronJob runs the identical recovery inside the cluster on a loop,
+# independent of the install script's lifetime, so it self-heals whenever DNS
+# delegation actually lands -- no one needs to come back and run the kubectl
+# commands by hand. It's a no-op (one read call) once the cert is Ready.
+resource "kubernetes_service_account" "wildcard_cert_selfheal" {
+  count = var.enable_cert_manager ? 1 : 0
+  metadata {
+    name      = "wildcard-cert-selfheal"
+    namespace = "cert-manager"
+  }
+}
+
+resource "kubernetes_role" "wildcard_cert_selfheal" {
+  count = var.enable_cert_manager ? 1 : 0
+  metadata {
+    name      = "wildcard-cert-selfheal"
+    namespace = "cert-manager"
+  }
+
+  rule {
+    api_groups = ["cert-manager.io"]
+    resources  = ["certificates"]
+    verbs      = ["get", "list"]
+  }
+  rule {
+    api_groups = ["acme.cert-manager.io"]
+    resources  = ["orders"]
+    verbs      = ["get", "list", "delete"]
+  }
+  rule {
+    api_groups = [""]
+    resources  = ["pods"]
+    verbs      = ["get", "list", "delete"]
+  }
+}
+
+resource "kubernetes_role_binding" "wildcard_cert_selfheal" {
+  count = var.enable_cert_manager ? 1 : 0
+  metadata {
+    name      = "wildcard-cert-selfheal"
+    namespace = "cert-manager"
+  }
+
+  role_ref {
+    api_group = "rbac.authorization.k8s.io"
+    kind      = "Role"
+    name      = kubernetes_role.wildcard_cert_selfheal[0].metadata[0].name
+  }
+
+  subject {
+    kind      = "ServiceAccount"
+    name      = kubernetes_service_account.wildcard_cert_selfheal[0].metadata[0].name
+    namespace = "cert-manager"
+  }
+}
+
+resource "kubernetes_cron_job_v1" "wildcard_cert_selfheal" {
+  count = var.enable_cert_manager ? 1 : 0
+  metadata {
+    name      = "wildcard-cert-selfheal"
+    namespace = "cert-manager"
+  }
+
+  spec {
+    schedule                      = "*/15 * * * *"
+    concurrency_policy            = "Forbid"
+    successful_jobs_history_limit = 1
+    failed_jobs_history_limit     = 1
+
+    job_template {
+      metadata {
+        labels = {
+          app = "wildcard-cert-selfheal"
+        }
+      }
+
+      spec {
+        backoff_limit = 0
+
+        template {
+          metadata {}
+
+          spec {
+            service_account_name = kubernetes_service_account.wildcard_cert_selfheal[0].metadata[0].name
+            restart_policy       = "Never"
+
+            container {
+              name  = "selfheal"
+              image = "alpine/k8s:1.29.6"
+
+              command = ["/bin/sh", "-c"]
+              args = [<<-EOT
+                set -eu
+                READY=$(kubectl get certificate "$CERT_NAME" -n cert-manager \
+                  -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null || echo "")
+                if [ "$READY" = "True" ]; then
+                  echo "Certificate $CERT_NAME already Ready -- nothing to do."
+                  exit 0
+                fi
+                echo "Certificate $CERT_NAME not Ready -- clearing stuck ACME orders and restarting the cert-manager controller..."
+                kubectl delete order -n cert-manager --all --ignore-not-found=true
+                kubectl delete pod -n cert-manager -l app.kubernetes.io/component=controller --ignore-not-found=true
+              EOT
+              ]
+
+              env {
+                name  = "CERT_NAME"
+                value = "${var.env}-wildcard-tls"
+              }
+
+              resources {
+                requests = {
+                  cpu    = "25m"
+                  memory = "32Mi"
+                }
+                limits = {
+                  cpu    = "100m"
+                  memory = "64Mi"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  depends_on = [
+    kubernetes_role_binding.wildcard_cert_selfheal,
+    kubectl_manifest.wildcard_cert,
+  ]
 }
 
 # ── ArgoCD DNS record (Bug 4 fix) ─────────────────────────────────────────────
