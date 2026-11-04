@@ -60,20 +60,21 @@ resource "google_project_iam_member" "node_monitoring_metric_writer" {
 module "gke" {
   source = "../gke"
 
-  project_id             = var.project_id
-  region                 = var.region
-  env                    = var.env
-  cluster_name           = var.cluster_name
-  vpc_name               = var.vpc_name
-  subnet_name            = var.subnet_name
-  pods_range_name        = var.pods_range_name
-  services_range_name    = var.services_range_name
-  node_machine_type      = var.node_machine_type
-  min_nodes              = var.min_nodes
-  max_nodes              = var.max_nodes
-  k8s_version            = var.k8s_version
-  node_service_account   = google_service_account.gke_node.email
-  master_ipv4_cidr_block = var.master_ipv4_cidr_block
+  project_id                 = var.project_id
+  region                     = var.region
+  env                        = var.env
+  cluster_name               = var.cluster_name
+  vpc_name                   = var.vpc_name
+  subnet_name                = var.subnet_name
+  pods_range_name            = var.pods_range_name
+  services_range_name        = var.services_range_name
+  node_machine_type          = var.node_machine_type
+  min_nodes                  = var.min_nodes
+  max_nodes                  = var.max_nodes
+  k8s_version                = var.k8s_version
+  node_service_account       = google_service_account.gke_node.email
+  master_ipv4_cidr_block     = var.master_ipv4_cidr_block
+  enable_deletion_protection = var.enable_deletion_protection
 
   depends_on = [
     google_project_iam_member.node_artifact_registry_reader,
@@ -105,14 +106,15 @@ resource "time_sleep" "wait_for_gke_api_propagation" {
 module "cloud_sql" {
   source = "../cloud_sql"
 
-  project_id    = var.project_id
-  region        = var.region
-  env           = var.env
-  vpc_name      = var.vpc_name
-  secrets_name  = var.secrets_name
-  self_service  = local.self_service
-  instance_tier = var.db_instance_tier
-  db_version    = var.db_version
+  project_id                 = var.project_id
+  region                     = var.region
+  env                        = var.env
+  vpc_name                   = var.vpc_name
+  secrets_name               = var.secrets_name
+  self_service               = local.self_service
+  instance_tier              = var.db_instance_tier
+  db_version                 = var.db_version
+  enable_deletion_protection = var.enable_deletion_protection
 }
 
 ###############################################################################

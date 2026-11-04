@@ -24,10 +24,10 @@ data "google_compute_subnetwork" "subnet" {
 ###############################################################################
 
 resource "google_container_cluster" "main" {
-  project            = var.project_id
-  name               = var.cluster_name
-  location           = var.region # regional (not zonal)
-  deletion_protection = var.env == "prod" ? true : false # protect prod cluster
+  project             = var.project_id
+  name                = var.cluster_name
+  location            = var.region # regional (not zonal)
+  deletion_protection = var.enable_deletion_protection
 
   # Kubernetes version — empty string = GKE picks latest stable from REGULAR channel
   min_master_version = var.k8s_version != "" ? var.k8s_version : null
@@ -169,7 +169,7 @@ resource "google_container_node_pool" "main" {
     disk_size_gb = 100
     # Ubuntu required for Landlock LSM (CONFIG_SECURITY_LANDLOCK) — used by
     # ekai-erd sandbox isolation. COS disables Landlock by default.
-    image_type   = "UBUNTU_CONTAINERD"
+    image_type = "UBUNTU_CONTAINERD"
 
     labels = {
       env     = var.env

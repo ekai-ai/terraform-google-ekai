@@ -90,7 +90,7 @@ resource "google_sql_database_instance" "postgres" {
   name                = "${local.name_prefix}-${var.db_version}"
   database_version    = "POSTGRES_${var.db_version}"
   region              = var.region
-  deletion_protection = var.env == "prod" ? true : false
+  deletion_protection = var.enable_deletion_protection
 
   depends_on = [google_service_networking_connection.private_vpc_connection]
 

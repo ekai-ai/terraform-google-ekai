@@ -165,6 +165,19 @@ variable "db_version" {
   default     = "15"
 }
 
+# Previously inferred from `var.env == "prod"` on both the GKE cluster and the
+# Cloud SQL instance -- meant any customer naming their one production env
+# "prod" (the exact example ARCHITECTURE.md gives) could never run
+# `terraform destroy` on either resource, with no override available short of
+# editing Terraform source. An explicit variable, defaulting to false (no env
+# in this repo relies on the old "prod" string today), fixes that without
+# losing the ability to turn real protection on deliberately.
+variable "enable_deletion_protection" {
+  description = "Protect the GKE cluster and Cloud SQL instance from accidental `terraform destroy`. Set true once an environment is stable; set back to false before intentionally destroying it."
+  type        = bool
+  default     = false
+}
+
 variable "pipelines" {
   description = <<-EOT
     Map of logical service names to pipeline metadata.

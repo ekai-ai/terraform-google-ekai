@@ -72,3 +72,9 @@ variable "master_ipv4_cidr_block" {
   type        = string
   default     = "172.16.0.0/28"
 }
+
+variable "enable_deletion_protection" {
+  description = "Protect this cluster from accidental `terraform destroy`."
+  type        = bool
+  default     = false
+}

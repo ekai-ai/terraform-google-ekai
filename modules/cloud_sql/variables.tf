@@ -41,3 +41,9 @@ variable "db_version" {
   type        = string
   default     = "15"
 }
+
+variable "enable_deletion_protection" {
+  description = "Protect this Cloud SQL instance from accidental `terraform destroy`."
+  type        = bool
+  default     = false
+}

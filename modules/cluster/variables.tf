@@ -116,6 +116,12 @@ variable "db_version" {
   default     = "15"
 }
 
+variable "enable_deletion_protection" {
+  description = "Protect the GKE cluster and Cloud SQL instance from accidental `terraform destroy`."
+  type        = bool
+  default     = false
+}
+
 # ---------------------------------------------------------------------------
 # CI/CD pipelines — Artifact Registry
 # ---------------------------------------------------------------------------

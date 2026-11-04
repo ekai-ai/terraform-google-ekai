@@ -142,6 +142,12 @@ variable "db_version" {
   default     = "15"
 }
 
+variable "enable_deletion_protection" {
+  description = "Protect the GKE cluster and Cloud SQL instance from accidental `terraform destroy`. Set true once an environment is stable; set back to false before intentionally destroying it."
+  type        = bool
+  default     = false
+}
+
 variable "pipelines" {
   description = <<-EOT
     Map of logical service names to pipeline metadata.
