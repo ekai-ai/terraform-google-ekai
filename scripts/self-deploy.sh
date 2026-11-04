@@ -129,6 +129,12 @@ REQUIRED_APIS=(
   iam.googleapis.com
   iamcredentials.googleapis.com
   cloudresourcemanager.googleapis.com
+  # Grants the default Cloud Build SA (<project-number>@cloudbuild.gserviceaccount.com)
+  # its IAM identity -- modules/artifact_registry grants it artifactregistry
+  # writer unconditionally. Without this enabled first, that SA doesn't exist
+  # yet and the IAM grant fails with "Service account ... does not exist"
+  # (confirmed live, Secunetics GCP feedback, 2026-10).
+  cloudbuild.googleapis.com
 )
 echo "==> Enabling: ${REQUIRED_APIS[*]}"
 gcloud services enable "${REQUIRED_APIS[@]}" --project="${PROJECT_ID}"
@@ -477,8 +483,23 @@ fi
 if [[ "${CERT_READY}" == "true" ]]; then
   echo "✓ TLS certificate issued."
 else
-  echo "⚠ TLS certificate still not ready -- ArgoCD/app URLs will show cert errors"
-  echo "  until it resolves on its own. Check: kubectl get certificate ${CERT_NAME} -n cert-manager"
+  # The recovery attempt above is one-shot and time-boxed (~5 min total) --
+  # it does NOT keep retrying in the background after this script exits.
+  # If DNS delegation finishes after this window (the normal case -- it's a
+  # human, out-of-band step), the Certificate is left wedged on the same
+  # stale-cache bug forever, with nothing to un-stick it automatically.
+  # Confirmed live: Secunetics GCP feedback, 2026-10 -- still stuck days
+  # later. Print the actual fix, not just a status-check command, so
+  # whoever revisits this (customer or support) doesn't have to go read
+  # this script to find it.
+  echo "⚠ TLS certificate still not ready -- ArgoCD/app URLs will show cert errors."
+  echo "  Check status:  kubectl get certificate ${CERT_NAME} -n cert-manager"
+  echo "  If DNS delegation (printed above) is confirmed correct and this is still"
+  echo "  stuck, cert-manager's DNS-01 self-check can wedge on a stale cache even"
+  echo "  though DNS is genuinely fine. Clear it with:"
+  echo "    kubectl delete order -n cert-manager --all"
+  echo "    kubectl delete pod -n cert-manager -l app.kubernetes.io/component=controller"
+  echo "  then wait ~2-3 minutes and re-check."
 fi
 
 cleanup_pf
