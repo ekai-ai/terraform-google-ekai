@@ -262,8 +262,17 @@ resource "google_secret_manager_secret" "app_secret" {
   project   = var.project_id
   secret_id = "ekai-${var.env}"
 
+  # user_managed pinned to var.region, not auto {} -- auto's replicas are
+  # chosen by Google and the secret's metadata is treated as stored in
+  # "global", which violates an org's constraints/gcp.resourceLocations
+  # policy when it restricts resource locations (e.g. to "us"). Confirmed
+  # live against such an org (Secunetics GCP feedback, 2026-10).
   replication {
-    auto {}
+    user_managed {
+      replicas {
+        location = var.region
+      }
+    }
   }
 }
 
