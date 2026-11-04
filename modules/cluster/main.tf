@@ -82,6 +82,22 @@ module "gke" {
   ]
 }
 
+# Wait for the GKE control plane to actually become reliably reachable before
+# the platform submodule's kubernetes/helm/kubectl-backed resources hammer it
+# -- confirmed live: right after google_container_cluster reports ready, the
+# API server can still fail the first wave of real calls (Helm's pre-install
+# OpenAPI schema discovery is a heavy one) with "TLS handshake timeout" for a
+# short window, even though module.gke's outputs (endpoint, ca_certificate)
+# are already known. Non-deterministic -- doesn't reproduce on every apply,
+# which is exactly why it needs a sleep rather than being "probably fine."
+# module.platform's root-level `depends_on = [module.cluster]` (see
+# ../../main.tf) already waits for every resource in this module, including
+# this one, before touching anything Helm/kubectl-based.
+resource "time_sleep" "wait_for_gke_api_propagation" {
+  depends_on      = [module.gke]
+  create_duration = "60s"
+}
+
 ###############################################################################
 # Cloud SQL (private PostgreSQL)
 ###############################################################################
