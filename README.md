@@ -5,8 +5,11 @@ GKE cluster, Cloud SQL (PostgreSQL), in-cluster Redis/Neo4j/MinIO, ArgoCD,
 and the `ekai-saas` Helm chart — everything needed for a working Ekai install.
 
 For how this repo is structured internally (why there are 2 Terraform
-applies, the module layout, the Terraform Registry option), see
-[ARCHITECTURE.md](ARCHITECTURE.md). This doc only covers deploying it.
+applies, the module layout), see [ARCHITECTURE.md](ARCHITECTURE.md). This
+doc only covers deploying it. Prefer consuming it directly as a module
+instead of `self-deploy.sh`? See
+[Using this as a Terraform Registry module](#using-this-as-a-terraform-registry-module)
+below.
 
 ## Prerequisites
 
@@ -45,7 +48,8 @@ look before your first deploy:
 
 Full reference (every variable, every default): [ARCHITECTURE.md](ARCHITECTURE.md),
 `variables.tf` and `cicd/variables.tf` — or the Terraform Registry's
-auto-generated Inputs page once this is published there.
+auto-generated Inputs page, once this is published there (see
+[below](#using-this-as-a-terraform-registry-module) — not done yet).
 
 ```bash
 ./scripts/self-deploy.sh <name>
@@ -143,3 +147,39 @@ interrupted prior run (it can't describe itself). Check with
 
 **Lost `env/<name>.tfvars`** — see `./scripts/recover-tfvars.sh` under
 [Tearing down](#tearing-down).
+
+## Using this as a Terraform Registry module
+
+**Not published yet** — connecting a repo to the Terraform Registry for
+the first time is a one-time manual step (sign in to
+[registry.terraform.io](https://registry.terraform.io) with the `ekai-ai`
+org's GitHub account, then publish this repo through the UI) that hasn't
+been done. Nothing below works until it has. Once it is, publishing a new
+version just needs a semver tag pushed (`git tag vX.Y.Z && git push origin
+vX.Y.Z`) — no further manual registry step after the first one.
+
+```hcl
+module "infra" {
+  source  = "registry.terraform.io/ekai-ai/ekai/google"
+  version = "~> 0.1"
+
+  region = "us-east1"
+  env    = "acme"
+  # ...every variable in variables.tf
+}
+
+module "cicd" {
+  source  = "registry.terraform.io/ekai-ai/ekai/google//cicd"
+  version = "~> 0.1"
+  # ...every variable in cicd/variables.tf, plus the values module.infra
+  # exports that cicd needs (see examples/self-deploy/cicd/main.tf for
+  # exactly which — with a registry module you'd normally wire these with
+  # module.infra.X directly if both modules live in the same config, instead
+  # of examples/self-deploy's terraform_remote_state indirection, which only
+  # exists because self-deploy.sh's 2-apply split needs an actual state
+  # boundary between them)
+}
+```
+
+See [ARCHITECTURE.md](ARCHITECTURE.md) for why this is 2 separate applies
+and the full module layout.
