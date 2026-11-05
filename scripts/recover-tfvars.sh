@@ -23,6 +23,10 @@
 # ──────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
 
+for bin in gsutil python3; do
+  command -v "$bin" >/dev/null 2>&1 || { echo "ERROR: '$bin' is required but not installed."; exit 1; }
+done
+
 ENV="${1:?Usage: $0 <ENV> <PROJECT_ID>}"
 PROJECT_ID="${2:?Usage: $0 <ENV> <PROJECT_ID>}"
 
