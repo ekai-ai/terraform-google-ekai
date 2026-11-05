@@ -5,7 +5,7 @@ GKE cluster, Cloud SQL (PostgreSQL), in-cluster Redis/Neo4j/MinIO, ArgoCD,
 and the `ekai-saas` Helm chart — everything needed for a working Ekai install.
 
 For how this repo is structured internally (why there are 2 Terraform
-applies, the module layout), see [ARCHITECTURE.md](ARCHITECTURE.md). This
+applies, the module layout), see [ARCHITECTURE.md](https://github.com/ekai-ai/terraform-google-ekai/blob/main/ARCHITECTURE.md). This
 doc only covers deploying it. Prefer consuming it directly as a module
 instead of `self-deploy.sh`? See
 [Using this as a Terraform Registry module](#using-this-as-a-terraform-registry-module)
@@ -14,7 +14,7 @@ below.
 ## Prerequisites
 
 - [gcloud CLI](https://cloud.google.com/sdk/docs/install), authenticated
-  (`gcloud auth login`) — see [PERMISSIONS.md](PERMISSIONS.md) for exactly
+  (`gcloud auth login`) — see [PERMISSIONS.md](https://github.com/ekai-ai/terraform-google-ekai/blob/main/PERMISSIONS.md) for exactly
   what this identity needs
 - [Terraform](https://developer.hashicorp.com/terraform/install) >= 1.5
 - `kubectl`, `jq`, `curl`
@@ -46,7 +46,7 @@ look before your first deploy:
 | `dns_zone` | Domain this deploys under (`portal.<dns_zone>`, `argocd.<dns_zone>`, ...) |
 | `acme_email` | Email for Let's Encrypt certificate notifications — cert-manager's ACME account registration fails without a real one |
 
-Full reference (every variable, every default): [ARCHITECTURE.md](ARCHITECTURE.md),
+Full reference (every variable, every default): [ARCHITECTURE.md](https://github.com/ekai-ai/terraform-google-ekai/blob/main/ARCHITECTURE.md),
 `variables.tf` and `cicd/variables.tf` — or the Terraform Registry's
 auto-generated Inputs page, once this is published there (see
 [below](#using-this-as-a-terraform-registry-module) — not done yet).
@@ -181,5 +181,5 @@ module "cicd" {
 }
 ```
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for why this is 2 separate applies
+See [ARCHITECTURE.md](https://github.com/ekai-ai/terraform-google-ekai/blob/main/ARCHITECTURE.md) for why this is 2 separate applies
 and the full module layout.

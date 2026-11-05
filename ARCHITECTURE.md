@@ -1,6 +1,6 @@
 # Architecture
 
-For how to actually deploy this, see [README.md](README.md). This doc
+For how to actually deploy this, see [README.md](https://github.com/ekai-ai/terraform-google-ekai/blob/main/README.md). This doc
 covers how the repo is structured and why, for anyone modifying it or
 consuming it a different way than `self-deploy.sh`.
 
