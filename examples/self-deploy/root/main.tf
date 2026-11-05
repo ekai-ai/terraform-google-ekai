@@ -73,7 +73,6 @@ module "infra" {
   services_cidr                = var.services_cidr
   dns_zone                     = var.dns_zone
   manage_dns_zone              = var.manage_dns_zone
-  state_bucket_name            = var.state_bucket_name
   cluster_name                 = var.cluster_name
   node_machine_type            = var.node_machine_type
   min_nodes                    = var.min_nodes
@@ -123,4 +122,5 @@ module "infra" {
   neo4j_storage_class          = var.neo4j_storage_class
   neo4j_memory_request         = var.neo4j_memory_request
   neo4j_memory_limit           = var.neo4j_memory_limit
+  enable_erd_gcs_fuse          = var.enable_erd_gcs_fuse
 }

@@ -70,10 +70,3 @@ output "name_servers" {
 # NOTE: SSL certificate outputs removed — wildcard TLS is handled by cert-manager
 # in the platform submodule (Let's Encrypt DNS-01). GCP managed SSL certs don't support wildcards.
 
-# ---------------------------------------------------------------------------
-# State bucket
-# ---------------------------------------------------------------------------
-output "state_bucket_name" {
-  description = "Name of the GCS bucket used for Terraform state (created by scripts/init-state-backend.sh)"
-  value       = var.state_bucket_name
-}

@@ -330,9 +330,12 @@ locals {
     secretName         = "ekai-${var.env}"
     serviceAccountName = "ekai-app-sa"
     erd = {
-      # Bucket/SA names below must match what the platform submodule
-      # actually creates (modules/platform/main.tf) -- both are derived
-      # from var.env only, no separate output plumbing needed.
+      # bucketName comes from the combined root's own output (see
+      # modules/platform/outputs.tf's erd_workspace_bucket_name) instead of
+      # being reconstructed here from var.env -- that used to require the
+      # two layers' naming logic to be kept in sync by hand, and silently
+      # diverged the moment the bucket name picked up a project_id suffix
+      # for global uniqueness.
       #
       # Field-level ternaries, not one big object ternary -- Terraform
       # requires both branches of a conditional to share one type, and an
@@ -342,7 +345,7 @@ locals {
         type             = var.enable_erd_gcs_fuse ? "gcsFuse" : "pvc"
         storageClassName = var.enable_erd_gcs_fuse ? null : var.erd_storage_class
         gcsFuse = var.enable_erd_gcs_fuse ? {
-          bucketName         = "ekai-${var.env}-erd-workspace"
+          bucketName         = var.erd_workspace_bucket_name
           serviceAccountName = "ekai-erd-sa"
         } : null
       }

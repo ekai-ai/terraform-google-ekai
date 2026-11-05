@@ -81,3 +81,8 @@ output "argocd_admin_password_plaintext" {
   sensitive   = true
   value       = local.self_service ? random_password.argocd_admin[0].result : null
 }
+
+output "erd_workspace_bucket_name" {
+  description = "ERD workspace GCS bucket name (empty when enable_erd_gcs_fuse = false). Single source of truth for the cicd module's chart values -- the bucket name is no longer reconstructed independently there."
+  value       = var.enable_erd_gcs_fuse ? google_storage_bucket.erd_workspace[0].name : ""
+}

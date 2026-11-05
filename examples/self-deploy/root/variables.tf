@@ -90,12 +90,6 @@ variable "manage_dns_zone" {
   default     = true
 }
 
-variable "state_bucket_name" {
-  description = "Name of the GCS bucket that stores Terraform state (created by scripts/init-state-backend.sh, outside Terraform). Optional -- leave unset and the scripts default to ekai-terraform-state-<env>-<project_id>, which is globally unique on its own since project_id already is. Only set this to use a different bucket name."
-  type        = string
-  default     = ""
-}
-
 # ═══════════════════════════════════════════════════════════════════════════
 # cluster submodule (GKE, Cloud SQL, Artifact Registry, node service account)
 # ═══════════════════════════════════════════════════════════════════════════
@@ -328,6 +322,15 @@ variable "acme_email" {
   description = "Email for Let's Encrypt certificate notifications."
   type        = string
   default     = "umar@ekai.ai"
+
+  # customer.tfvars ships this as a loud "REPLACE_ME" placeholder -- without
+  # this check, forgetting to replace it (or deleting the override line
+  # entirely) wasn't caught by Terraform at all; it only surfaced later as
+  # an opaque cert-manager/ACME registration failure.
+  validation {
+    condition     = var.acme_email != "" && var.acme_email != "REPLACE_ME" && can(regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", var.acme_email))
+    error_message = "acme_email must be a real email address -- got empty, the literal placeholder \"REPLACE_ME\", or something that doesn't look like an email."
+  }
 }
 
 variable "aws_ecr_access_key_id" {
@@ -402,4 +405,10 @@ variable "neo4j_memory_request" {
 variable "neo4j_memory_limit" {
   type    = string
   default = "4Gi"
+}
+
+variable "enable_erd_gcs_fuse" {
+  description = "Create the GCS bucket + Workload Identity SA backing ERD's shared workspace. Must match the same-named variable passed to the cicd layer's apply."
+  type        = bool
+  default     = true
 }

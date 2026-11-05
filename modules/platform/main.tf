@@ -164,35 +164,51 @@ resource "google_service_account_iam_member" "ekai_app_workload_identity" {
 # that spreads those pods across nodes deadlocks with Multi-Attach errors
 # (confirmed live). GCS FUSE mounts a real bucket instead, with no
 # node-attach limit. Same fix already proven on Ekai's own "beta" env.
+#
+# Gated on enable_erd_gcs_fuse -- previously created unconditionally even
+# when a customer chose the PVC workspace type (cicd layer's same-named
+# variable set to false), leaving an unused bucket + SA + IAM grants behind
+# for no reason.
+#
+# Bucket name includes project_id for the same reason the state bucket's
+# name does (see cicd/main.tf's state bucket) -- GCS bucket names are unique
+# across ALL of GCP, not per-project, and "ekai-${var.env}-erd-workspace"
+# alone collides the moment two different customers use the same env name.
 resource "google_storage_bucket" "erd_workspace" {
+  count                       = var.enable_erd_gcs_fuse ? 1 : 0
   project                     = var.project_id
-  name                        = "ekai-${var.env}-erd-workspace"
+  name                        = "ekai-${var.env}-erd-workspace-${var.project_id}"
   location                    = var.region
   storage_class               = "STANDARD"
   uniform_bucket_level_access = true
 }
 
 resource "google_service_account" "erd_gcsfuse" {
+  count        = var.enable_erd_gcs_fuse ? 1 : 0
   project      = var.project_id
   account_id   = "${var.env}-erd-gcsfuse-sa"
   display_name = "ERD workspace GCS FUSE Workload Identity SA (${var.env})"
 }
 
 resource "google_storage_bucket_iam_member" "erd_gcsfuse" {
-  bucket = google_storage_bucket.erd_workspace.name
+  count  = var.enable_erd_gcs_fuse ? 1 : 0
+  bucket = google_storage_bucket.erd_workspace[0].name
   role   = "roles/storage.objectUser"
-  member = "serviceAccount:${google_service_account.erd_gcsfuse.email}"
+  member = "serviceAccount:${google_service_account.erd_gcsfuse[0].email}"
 }
 
 resource "google_service_account_iam_member" "erd_gcsfuse_workload_identity" {
-  service_account_id = google_service_account.erd_gcsfuse.name
+  count              = var.enable_erd_gcs_fuse ? 1 : 0
+  service_account_id = google_service_account.erd_gcsfuse[0].name
   role               = "roles/iam.workloadIdentityUser"
   member             = "serviceAccount:${var.project_id}.svc.id.goog[ekai-saas/ekai-erd-sa]"
 }
 
 # Same pattern as kubernetes_service_account.ekai_app above -- created here
 # (not by the chart) so it exists before ArgoCD syncs the ERD deployments
-# that reference it.
+# that reference it. Created either way (the chart's ERD deployment sets
+# serviceAccountName: ekai-erd-sa regardless of workspace type) -- only the
+# Workload Identity annotation binding it to the GCS-FUSE SA is conditional.
 resource "kubernetes_service_account" "ekai_erd" {
   metadata {
     name      = "ekai-erd-sa"
@@ -201,9 +217,9 @@ resource "kubernetes_service_account" "ekai_erd" {
       app     = "ekai-erd"
       managed = "terraform"
     }
-    annotations = {
-      "iam.gke.io/gcp-service-account" = google_service_account.erd_gcsfuse.email
-    }
+    annotations = var.enable_erd_gcs_fuse ? {
+      "iam.gke.io/gcp-service-account" = google_service_account.erd_gcsfuse[0].email
+    } : {}
   }
   depends_on = [kubernetes_namespace.ekai_saas]
 }

@@ -113,12 +113,6 @@ variable "manage_dns_zone" {
   default     = true
 }
 
-variable "state_bucket_name" {
-  description = "Name of the GCS bucket that stores Terraform state (created by scripts/init-state-backend.sh, outside Terraform). Optional -- leave unset and the scripts default to ekai-terraform-state-<env>-<project_id>, which is globally unique on its own since project_id already is. Only set this to use a different bucket name."
-  type        = string
-  default     = ""
-}
-
 # ═══════════════════════════════════════════════════════════════════════════
 # cluster submodule (GKE, Cloud SQL, Artifact Registry, node service account)
 # ═══════════════════════════════════════════════════════════════════════════
@@ -176,6 +170,17 @@ variable "enable_deletion_protection" {
   description = "Protect the GKE cluster and Cloud SQL instance from accidental `terraform destroy`. Set true once an environment is stable; set back to false before intentionally destroying it."
   type        = bool
   default     = false
+}
+
+# Also declared in cicd/variables.tf (chart values only use it there) -- this
+# copy gates whether THIS layer's platform submodule actually provisions the
+# GCS bucket + Workload Identity SA at all. Previously only the cicd copy
+# existed, so a customer apply against this root layer silently ignored the
+# flag entirely and always created the bucket/SA regardless of their choice.
+variable "enable_erd_gcs_fuse" {
+  description = "Back ERD's shared workspace with a GCS bucket (via GCS FUSE) instead of a PVC. Must match the same-named variable passed to the cicd layer's apply."
+  type        = bool
+  default     = true
 }
 
 variable "pipelines" {
@@ -358,6 +363,16 @@ variable "acme_email" {
   description = "Email for Let's Encrypt certificate notifications."
   type        = string
   default     = "umar@ekai.ai"
+
+  # customer.tfvars ships this as a loud "REPLACE_ME" placeholder -- without
+  # this check, forgetting to replace it (or deleting the override line
+  # entirely) wasn't caught by Terraform at all; it only surfaced later as
+  # an opaque cert-manager/ACME registration failure, with the customer's
+  # cert silently registered under Ekai's own default email in the latter case.
+  validation {
+    condition     = var.acme_email != "" && var.acme_email != "REPLACE_ME" && can(regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", var.acme_email))
+    error_message = "acme_email must be a real email address -- got empty, the literal placeholder \"REPLACE_ME\", or something that doesn't look like an email."
+  }
 }
 
 variable "aws_ecr_access_key_id" {

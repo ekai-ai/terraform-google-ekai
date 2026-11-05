@@ -40,16 +40,15 @@ locals {
 module "bootstrap" {
   source = "./modules/bootstrap"
 
-  project_id        = var.project_id
-  region            = var.region
-  env               = var.env
-  vpc_name          = var.vpc_name
-  subnet_cidr       = var.subnet_cidr
-  pods_cidr         = var.pods_cidr
-  services_cidr     = var.services_cidr
-  dns_zone          = var.dns_zone
-  manage_dns_zone   = var.manage_dns_zone
-  state_bucket_name = var.state_bucket_name
+  project_id      = var.project_id
+  region          = var.region
+  env             = var.env
+  vpc_name        = var.vpc_name
+  subnet_cidr     = var.subnet_cidr
+  pods_cidr       = var.pods_cidr
+  services_cidr   = var.services_cidr
+  dns_zone        = var.dns_zone
+  manage_dns_zone = var.manage_dns_zone
 }
 
 module "cluster" {
@@ -128,6 +127,7 @@ module "platform" {
   neo4j_storage_class          = var.neo4j_storage_class
   neo4j_memory_request         = var.neo4j_memory_request
   neo4j_memory_limit           = var.neo4j_memory_limit
+  enable_erd_gcs_fuse          = var.enable_erd_gcs_fuse
 
   # formerly `data "terraform_remote_state" "cluster"` in the platform layer's main.tf
   cluster_name = module.cluster.cluster_name

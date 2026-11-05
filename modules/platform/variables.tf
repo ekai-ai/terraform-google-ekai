@@ -196,6 +196,11 @@ variable "acme_email" {
   description = "Email for Let's Encrypt certificate notifications."
   type        = string
   default     = "umar@ekai.ai"
+
+  validation {
+    condition     = var.acme_email != "" && var.acme_email != "REPLACE_ME" && can(regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", var.acme_email))
+    error_message = "acme_email must be a real email address -- got empty, the literal placeholder \"REPLACE_ME\", or something that doesn't look like an email."
+  }
 }
 
 variable "aws_ecr_access_key_id" {
@@ -276,4 +281,11 @@ variable "neo4j_memory_request" {
 variable "neo4j_memory_limit" {
   type    = string
   default = "4Gi"
+}
+
+# ── ERD GCS FUSE workspace ──────────────────────────────────────────────────
+variable "enable_erd_gcs_fuse" {
+  description = "Create the GCS bucket + Workload Identity SA backing ERD's shared workspace. Must match the cicd layer's same-named variable -- that layer decides whether the chart actually mounts it (gcsFuse vs PVC); this one decides whether the bucket/SA exist at all."
+  type        = bool
+  default     = true
 }

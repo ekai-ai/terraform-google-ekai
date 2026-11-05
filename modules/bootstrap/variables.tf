@@ -46,8 +46,3 @@ variable "manage_dns_zone" {
   type        = bool
   default     = true
 }
-
-variable "state_bucket_name" {
-  description = "Globally unique name for the GCS bucket that stores Terraform state"
-  type        = string
-}

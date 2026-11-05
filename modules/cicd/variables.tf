@@ -61,6 +61,12 @@ variable "enable_erd_gcs_fuse" {
   default     = true
 }
 
+variable "erd_workspace_bucket_name" {
+  description = "ERD workspace GCS bucket name, read from the combined root's state (empty when enable_erd_gcs_fuse = false there). Single source of truth -- no longer reconstructed independently here, which used to require the two layers' bucket-naming logic to be kept manually in sync."
+  type        = string
+  default     = ""
+}
+
 variable "ingress_class_name" {
   description = "Ingress controller class for the ekai-saas chart (cicd_provider = \"none\" only)."
   type        = string

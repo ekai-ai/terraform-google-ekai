@@ -152,3 +152,8 @@ output "cluster_secret_store_name" {
   description = "ClusterSecretStore name. Read by ./cicd/'s ExternalSecret resource."
   value       = module.platform.cluster_secret_store_name
 }
+
+output "erd_workspace_bucket_name" {
+  description = "ERD workspace GCS bucket name (empty when enable_erd_gcs_fuse = false). Read by ./cicd/ instead of reconstructing the name independently."
+  value       = module.platform.erd_workspace_bucket_name
+}
