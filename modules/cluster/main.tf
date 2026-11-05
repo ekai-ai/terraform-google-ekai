@@ -17,6 +17,17 @@ locals {
   _cloudbuild_sa = var.cloudbuild_sa_email != "" ? var.cloudbuild_sa_email : "${data.google_project.current.number}@cloudbuild.gserviceaccount.com"
 
   self_service = var.cicd_provider == "none"
+
+  # GCP caps service-account IDs at 30 chars. "${cluster_name}-node-sa" fits
+  # for every env name in this repo today (cluster_name = "ekai-<env>-gke"
+  # leaves 13 chars of budget for env), so the common case is untouched --
+  # changing this formula unconditionally would force every existing
+  # deployment's node SA (ours included) to be destroyed and recreated for
+  # no reason. Only a descriptive env name long enough to blow the 30-char
+  # cap falls back to a truncated-name + hash form, which stays unique
+  # across different long cluster_names instead of silently colliding.
+  _gke_node_sa_id_wanted = "${var.cluster_name}-node-sa"
+  gke_node_sa_id         = length(local._gke_node_sa_id_wanted) <= 30 ? local._gke_node_sa_id_wanted : "${substr(var.cluster_name, 0, 20)}-${substr(md5(var.cluster_name), 0, 8)}"
 }
 
 ###############################################################################
@@ -26,7 +37,7 @@ locals {
 
 resource "google_service_account" "gke_node" {
   project      = var.project_id
-  account_id   = "${var.cluster_name}-node-sa"
+  account_id   = local.gke_node_sa_id
   display_name = "GKE node SA — ${var.cluster_name}"
   description  = "Attached to all nodes in the ${var.cluster_name} cluster. Managed by Terraform."
 }
