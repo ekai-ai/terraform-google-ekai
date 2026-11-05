@@ -131,19 +131,15 @@ fi
 # Captured before anything switches it -- see the cleanup_all trap below for why.
 ORIGINAL_ACCOUNT=$(gcloud config get-value account 2>/dev/null)
 
-export GOOGLE_APPLICATION_CREDENTIALS="${KEY_FILE}"
-echo "==> Activating deployer identity..."
-gcloud auth activate-service-account "${SA_EMAIL}" --key-file="${KEY_FILE}"
-gcloud config set project "${PROJECT_ID}" >/dev/null
-
-# One combined trap, armed for the rest of the script (never cleared early) --
-# gcloud auth activate-service-account persists across separate invocations
-# (unlike AWS's env-var credentials, which reset per shell), so without
-# this, a script that dies partway (e.g. a failed terraform destroy) leaves
-# gcloud silently stuck on the narrowly-scoped deployer SA for every future
-# gcloud command, including the next run of this same script. Killing an
-# already-exited PF_PID is harmless, so this stays safe to leave armed even
-# once the port-forward is no longer needed.
+# One combined trap, armed BEFORE either identity-switching command below,
+# not after -- if `gcloud config set project` itself failed in that narrow
+# window under set -e, the old ordering exited with the trap never
+# registered, leaving gcloud silently stuck on the narrowly-scoped deployer
+# SA for every future gcloud command, including the next run of this same
+# script. gcloud auth activate-service-account persists across separate
+# invocations (unlike AWS's env-var credentials, which reset per shell).
+# Killing an already-exited PF_PID is harmless, so this stays safe to leave
+# armed even once the port-forward is no longer needed.
 PF_PID=""
 cleanup_all() {
   [[ -n "${PF_PID}" ]] && kill "${PF_PID}" >/dev/null 2>&1
@@ -153,6 +149,11 @@ cleanup_all() {
   true
 }
 trap cleanup_all EXIT
+
+export GOOGLE_APPLICATION_CREDENTIALS="${KEY_FILE}"
+echo "==> Activating deployer identity..."
+gcloud auth activate-service-account "${SA_EMAIL}" --key-file="${KEY_FILE}"
+gcloud config set project "${PROJECT_ID}" >/dev/null
 
 # ── 1. Terraform destroy — examples/self-deploy/cicd FIRST ───────────────────
 # Must run while the root config's cluster/ArgoCD are still live — cicd's
@@ -226,8 +227,8 @@ fi
 
 # ── Optional: the deployer Service Account + key ─────────────────────────────
 # Unlike AWS (where the policy documents are separate, reusable objects and
-# only the user + its attachments are removed), GCP granted these 10 roles
-# directly on the PROJECT's IAM policy -- deleting the SA alone leaves all 10
+# only the user + its attachments are removed), GCP granted these 11 roles
+# directly on the PROJECT's IAM policy -- deleting the SA alone leaves all 11
 # as dangling bindings in that policy forever (GCP does not auto-clean them).
 # Remove each binding explicitly first, same role list self-deploy.sh grants.
 echo
@@ -244,6 +245,10 @@ if [[ "${CLEAN_SA}" =~ ^[Yy]$ ]]; then
     roles/iam.serviceAccountAdmin
     roles/iam.serviceAccountUser
     roles/resourcemanager.projectIamAdmin
+    # Needed for platform's google_storage_bucket.erd_workspace -- this one
+    # had drifted out of sync with self-deploy.sh's actual grant list, so the
+    # binding was never removed and was left dangling on every SA deletion.
+    roles/storage.admin
   )
   for ROLE in "${PROJECT_ROLES[@]}"; do
     gcloud projects remove-iam-policy-binding "${PROJECT_ID}" \
@@ -252,9 +257,20 @@ if [[ "${CLEAN_SA}" =~ ^[Yy]$ ]]; then
       --condition=None \
       --quiet >/dev/null 2>&1 || true
   done
+  # GCP reserves a deleted SA's email/ID for ~30 days (soft delete) -- a
+  # same-day self-deploy.sh re-run for this env will fail creating a new SA
+  # with this same name. Print the unique ID now, while it's still visible,
+  # so it can be undeleted (`gcloud iam service-accounts undelete`) instead
+  # of waiting out the window.
+  SA_UNIQUE_ID="$(gcloud iam service-accounts describe "${SA_EMAIL}" --project="${PROJECT_ID}" --format='value(uniqueId)' 2>/dev/null || true)"
   gcloud iam service-accounts delete "${SA_EMAIL}" --project="${PROJECT_ID}" --quiet
   rm -f "${KEY_FILE}"
   echo "  Removed ${SA_EMAIL}'s project IAM roles, deleted the service account, and removed the local key file."
+  if [[ -n "${SA_UNIQUE_ID}" ]]; then
+    echo "  Note: GCP keeps this SA's name reserved for ~30 days. If you redeploy"
+    echo "  this env before then, undelete it instead of waiting:"
+    echo "    gcloud iam service-accounts undelete ${SA_UNIQUE_ID} --project=${PROJECT_ID}"
+  fi
 else
   echo "Skipped."
 fi

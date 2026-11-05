@@ -139,6 +139,13 @@ REQUIRED_APIS=(
 echo "==> Enabling: ${REQUIRED_APIS[*]}"
 gcloud services enable "${REQUIRED_APIS[@]}" --project="${PROJECT_ID}"
 echo "✓ APIs enabled."
+
+# `gcloud services enable` blocks until the Service Usage API reports the
+# API enabled, but the IAM API itself can lag slightly behind that before
+# it's actually callable on a brand-new project -- same class of propagation
+# gap as the SA-visibility wait right below, just one step earlier. The very
+# next thing this script does is call it (service-accounts describe/create).
+sleep 10
 echo
 
 # ── Step 2 — Deployer Service Account + roles ─────────────────────────────────
@@ -150,9 +157,26 @@ if gcloud iam service-accounts describe "${SA_EMAIL}" --project="${PROJECT_ID}" 
   echo "==> Service account ${SA_EMAIL} already exists — reusing."
 else
   echo "==> Creating service account ${SA_EMAIL}..."
-  gcloud iam service-accounts create "${SA_NAME}" \
+  CREATE_ERR="$(mktemp)"
+  if ! gcloud iam service-accounts create "${SA_NAME}" \
     --project="${PROJECT_ID}" \
-    --display-name="Ekai Terraform deployer (${ENV})"
+    --display-name="Ekai Terraform deployer (${ENV})" 2>"${CREATE_ERR}"; then
+    cat "${CREATE_ERR}" >&2
+    if grep -qi "already exists\|deletion window\|undelete" "${CREATE_ERR}"; then
+      echo ""
+      echo "⚠ This looks like GCP's service-account soft-delete window, not a real"
+      echo "  naming conflict -- a deleted SA's name/ID stays reserved for ~30 days."
+      echo "  If you just ran self-deploy-destroy.sh for env '${ENV}' and chose to"
+      echo "  delete the deployer SA, its unique ID was printed at that step --"
+      echo "  recover it with:"
+      echo "    gcloud iam service-accounts undelete <UNIQUE_ID> --project=${PROJECT_ID}"
+      echo "  Otherwise, either wait out the ~30-day window or re-run with a"
+      echo "  different env name."
+    fi
+    rm -f "${CREATE_ERR}"
+    exit 1
+  fi
+  rm -f "${CREATE_ERR}"
 
   # A freshly created SA isn't always immediately visible to the Resource
   # Manager IAM policy-binding API -- add-iam-policy-binding right after
@@ -313,28 +337,38 @@ fi
 
 export GOOGLE_APPLICATION_CREDENTIALS="${KEY_FILE}"
 echo "==> Activating deployer identity for gcloud/kubectl calls..."
-gcloud auth activate-service-account "${SA_EMAIL}" --key-file="${KEY_FILE}"
-gcloud config set project "${PROJECT_ID}" >/dev/null
 
-# Restore whatever identity was active before the line above, no matter how
-# this script exits (success, error, Ctrl-C) -- gcloud auth
-# activate-service-account persists across separate invocations (unlike AWS's
-# env-var credentials, which reset per shell), so without this, a script that
-# dies partway (e.g. a failed terraform apply) leaves gcloud silently stuck
-# on the narrowly-scoped deployer SA for every future gcloud command,
-# including the next run of this same script.
+# Armed BEFORE either identity-switching command below, not after -- if
+# `gcloud config set project` itself failed in that narrow window under
+# set -e, the old ordering exited with the trap never registered, leaving
+# gcloud silently stuck on the narrowly-scoped deployer SA for every future
+# command, including the next run of this same script. Restores whatever
+# identity was active before this point, no matter how the script exits
+# (success, error, Ctrl-C) -- gcloud auth activate-service-account persists
+# across separate invocations (unlike AWS's env-var credentials, which reset
+# per shell).
 if [[ -n "${ORIGINAL_ACCOUNT}" ]]; then
   trap 'gcloud config set account "${ORIGINAL_ACCOUNT}" >/dev/null 2>&1 || true' EXIT
 fi
 
+gcloud auth activate-service-account "${SA_EMAIL}" --key-file="${KEY_FILE}"
+gcloud config set project "${PROJECT_ID}" >/dev/null
+
 echo "==> Waiting for the new key to propagate..."
+KEY_PROPAGATED=false
 for i in $(seq 1 20); do
   if gcloud projects describe "${PROJECT_ID}" >/dev/null 2>&1; then
     echo "✓ Key is active."
+    KEY_PROPAGATED=true
     break
   fi
   sleep 5
 done
+if [[ "${KEY_PROPAGATED}" != "true" ]]; then
+  echo "⚠ Gave up waiting (~100s) for the new deployer key to propagate -- the"
+  echo "  terraform apply below will likely fail authenticating as it, which"
+  echo "  would otherwise look like an unrelated auth/connection error."
+fi
 
 # 2 applies, in order: bootstrap+cluster+platform first (its state feeds
 # cicd's terraform_remote_state read — see cicd/main.tf's file header for why
@@ -431,13 +465,21 @@ cleanup_pf() {
 trap cleanup_pf EXIT
 
 echo "==> Waiting for ArgoCD port-forward to be ready..."
+PF_READY=false
 for i in $(seq 1 20); do
   if curl -sf http://localhost:8080/healthz >/dev/null 2>&1; then
     echo "✓ ArgoCD reachable on localhost:8080."
+    PF_READY=true
     break
   fi
   sleep 3
 done
+if [[ "${PF_READY}" != "true" ]]; then
+  echo "⚠ Gave up waiting (~60s) for the ArgoCD port-forward to come up -- the"
+  echo "  cicd apply below configures its argocd provider against"
+  echo "  localhost:8080, so it will likely fail with a connection error that"
+  echo "  looks unrelated unless you know this step didn't actually succeed."
+fi
 
 cd "${REPO_ROOT}/examples/self-deploy/cicd"
 terraform init -upgrade -reconfigure -backend-config="../../../env/backend-${ENV}-cicd.tfbackend"
