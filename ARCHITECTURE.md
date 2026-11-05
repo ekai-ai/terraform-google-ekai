@@ -233,9 +233,6 @@ table only covers the handful worth a second look. `project_id`/`region`/
 | `erd_storage_class` | `"standard-rwo"` | StorageClass for ERD's workspace PVC |
 | `ingress_class_name` | `"nginx"` | Ingress controller class for the chart |
 | `tls_secret_name` | `"wildcard-tls"` | TLS Secret the chart's Ingress references — matches the combined root's cert-manager wildcard cert |
-| `claude_model` | `"claude-haiku-4-5-20251001"` | Claude model the semantics service uses |
-| `vector_embedding_model` | `"text-embedding-3-small"` | OpenAI embedding model for vector search |
-| `vector_embedding_batch_size` | `100` | Batch size for embedding generation |
 | `secret_value_overrides` | `{}` | Escape hatch for any app-secret key with no dedicated variable — wins on conflicts |
 | `manifest_folder` | `"manifest-files"` | Folder in the `deployment-files` repo where ArgoCD reads K8s manifests |
 | `ekai_namespace` | — (required) | Kubernetes namespace for the app's services |

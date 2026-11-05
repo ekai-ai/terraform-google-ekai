@@ -121,7 +121,7 @@ data "kubernetes_namespace" "ekai_saas" {
 # JSON before terraform apply. Every value Terraform can know for certain
 # (Cloud SQL/Redis/Neo4j/MinIO creds, service URLs derived from dns_zone,
 # freshly generated crypto keys, safe non-secret defaults) is filled in for
-# real. LLM keys/Cognito/GitHub App/Document AI are left blank ("") — out of
+# real. GitHub App details are left blank ("") — out of
 # scope for this pass, same as GitHub sync/Langfuse tracing above. The only
 # values that genuinely require the client's own external account and are
 # needed for the app to function out of the box are AWS SES creds (signup
