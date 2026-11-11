@@ -67,25 +67,8 @@ after one confirmation (it creates real, billable GCP resources).
 
 ## After a successful deploy
 
-The app secret (`ekai-<env>` in Secret Manager, e.g. `ekai-customer`) ships
-with a `REPLACE_ME` placeholder for the one thing the app needs a real value
-for out of the box: AWS SES credentials for signup invite emails (used
-regardless of which cloud hosts the cluster). Fill them in with one command
-— replace the `...` values below with real ones (an AWS IAM user with SES
-send access is enough — self-service uses in-cluster MinIO for file storage,
-so no S3 access is needed on that IAM user):
-
-```bash
-gcloud secrets versions access latest --secret=ekai-customer --project=<your-project> | jq '
-    .AWS_ACCESS_KEY_ID = "..." |
-    .AWS_SECRET_ACCESS_KEY = "..." |
-    .SES_AWS_REGION = "..." |
-    .AWS_SES_FROM_EMAIL = "..."
-  ' | gcloud secrets versions add ekai-customer --project=<your-project> --data-file=-
-```
-
-Optional — check the ArgoCD URL/password, Cloud DNS nameservers, portal URL,
-and app secret's name:
+Check the ArgoCD URL/password, Cloud DNS nameservers, portal URL, and app
+secret's name:
 
 ```bash
 terraform output -C examples/self-deploy/root
