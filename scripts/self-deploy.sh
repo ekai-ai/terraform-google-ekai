@@ -544,6 +544,43 @@ else
   echo "  then wait ~2-3 minutes and re-check."
 fi
 
+# ── Confirm the ArgoCD Ingress actually points at the cert we just issued ────
+# The Certificate being Ready only means cert-manager finished -- it says
+# nothing about whether the reflector has mirrored its Secret (tls_secret_name,
+# a different name than the Certificate object itself) into argocd's
+# namespace yet, or whether the ArgoCD Ingress's spec.tls[0].secretName still
+# matches that mirrored secret's name. Confirmed live on Azure's identical
+# reflector setup that the two can drift apart (e.g. a manual kubectl edit)
+# with no error anywhere -- nginx just silently falls back to its default
+# fake cert. Verify the live object, don't just trust the Helm release's
+# recorded values.
+if [[ "${CERT_READY}" == "true" ]]; then
+  cd "${REPO_ROOT}/examples/self-deploy/root"
+  TLS_SECRET_NAME=$(terraform output -raw tls_secret_name)
+  ARGOCD_NAMESPACE=$(terraform output -raw argocd_namespace)
+  cd "${REPO_ROOT}/examples/self-deploy/cicd"
+
+  echo "==> Waiting for the reflected cert secret in ${ARGOCD_NAMESPACE} namespace..."
+  if kubectl wait --for=create "secret/${TLS_SECRET_NAME}" -n "${ARGOCD_NAMESPACE}" --timeout=100s >/dev/null 2>&1; then
+    REFLECTED_READY=true
+  else
+    REFLECTED_READY=false
+  fi
+
+  if [[ "${REFLECTED_READY}" == "true" ]]; then
+    CURRENT_SECRET_NAME=$(kubectl get ingress argocd-server -n "${ARGOCD_NAMESPACE}" -o jsonpath='{.spec.tls[0].secretName}' 2>/dev/null || true)
+    if [[ -n "${CURRENT_SECRET_NAME}" && "${CURRENT_SECRET_NAME}" != "${TLS_SECRET_NAME}" ]]; then
+      echo "⚠ ArgoCD Ingress TLS secretName drifted (\"${CURRENT_SECRET_NAME}\" != \"${TLS_SECRET_NAME}\") -- correcting..."
+      kubectl patch ingress argocd-server -n "${ARGOCD_NAMESPACE}" --type=json \
+        -p="[{\"op\":\"replace\",\"path\":\"/spec/tls/0/secretName\",\"value\":\"${TLS_SECRET_NAME}\"}]"
+      echo "✓ ArgoCD Ingress now points at ${TLS_SECRET_NAME}."
+    fi
+  else
+    echo "⚠ Reflected cert secret never appeared in ${ARGOCD_NAMESPACE} namespace -- ArgoCD URL will show cert errors."
+    echo "  Check: kubectl get pods -n kube-system -l app.kubernetes.io/name=reflector"
+  fi
+fi
+
 cleanup_pf
 trap - EXIT
 echo "==> Restored your original gcloud identity (${ORIGINAL_ACCOUNT})."

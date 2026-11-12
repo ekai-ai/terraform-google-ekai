@@ -14,6 +14,16 @@ output "argocd_admin_username" {
   value       = module.infra.argocd_admin_username
 }
 
+output "tls_secret_name" {
+  description = "Name of the wildcard TLS Secret the reflector mirrors into argocd/ekai-saas/minio/ingress-nginx."
+  value       = module.infra.tls_secret_name
+}
+
+output "argocd_namespace" {
+  description = "Namespace ArgoCD is installed into."
+  value       = module.infra.argocd_namespace
+}
+
 output "argocd_admin_password" {
   description = "ArgoCD admin plaintext password (cicd_provider = \"none\" only — self-service generates this directly; non-self-service envs get it from their master Secret Manager secret instead, not exposed here)."
   value       = module.infra.argocd_admin_password
