@@ -470,16 +470,24 @@ resource "kubectl_manifest" "wildcard_cert" {
 resource "kubernetes_service_account" "wildcard_cert_selfheal" {
   count = var.enable_cert_manager ? 1 : 0
   metadata {
-    name      = "wildcard-cert-selfheal"
-    namespace = "cert-manager"
+    name = "wildcard-cert-selfheal"
+    # Read from the release, not hardcoded -- helm_release.cert_manager's
+    # create_namespace is what creates "cert-manager", so this reference
+    # makes Terraform wait for it instead of racing it ("namespaces
+    # \"cert-manager\" not found" on a fresh install).
+    namespace = helm_release.cert_manager[0].namespace
   }
 }
 
 resource "kubernetes_role" "wildcard_cert_selfheal" {
   count = var.enable_cert_manager ? 1 : 0
   metadata {
-    name      = "wildcard-cert-selfheal"
-    namespace = "cert-manager"
+    name = "wildcard-cert-selfheal"
+    # Read from the release, not hardcoded -- helm_release.cert_manager's
+    # create_namespace is what creates "cert-manager", so this reference
+    # makes Terraform wait for it instead of racing it ("namespaces
+    # \"cert-manager\" not found" on a fresh install).
+    namespace = helm_release.cert_manager[0].namespace
   }
 
   rule {
