@@ -73,7 +73,7 @@ variable "tls_secret_name" {
 variable "nginx_ingress_chart_version" {
   description = "ingress-nginx Helm chart version."
   type        = string
-  default     = "4.10.1"
+  default     = "4.15.1"
 }
 
 variable "eso_chart_version" {

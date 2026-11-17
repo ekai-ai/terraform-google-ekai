@@ -195,7 +195,7 @@ table only covers the handful worth a second look. `project_id`/`region`/
 | `argocd_admin_password_hashed` | `""` | Bcrypt hash; ignored for self-service (generated directly instead) |
 | `argocd_ingress_host` | — (required) | ArgoCD's hostname, e.g. `argocd.client1.ekai.ai` |
 | `tls_secret_name` | `"wildcard-tls"` | K8s TLS Secret used by ArgoCD and other Ingresses (cert-manager or pre-provisioned) |
-| `nginx_ingress_chart_version` | `"4.10.1"` | ingress-nginx chart version |
+| `nginx_ingress_chart_version` | `"4.15.1"` | ingress-nginx chart version |
 | `eso_chart_version` | `"0.10.3"` | External Secrets Operator chart version |
 | `argocd_chart_version` | `"10.18.0"` | argo-cd chart version |
 | `keda_chart_version` | `"2.16.0"` | KEDA chart version |
