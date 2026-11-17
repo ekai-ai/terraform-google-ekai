@@ -121,6 +121,14 @@ resource "argocd_application" "ekai-saas" {
     }
   }
 
+  # Image Updater (write-back-method "argocd") pins each image's digest as a
+  # Helm parameter on this live Application. Terraform sets no parameters
+  # itself (everything goes through helm.values), so without this every
+  # apply would strip the pins and roll the pods twice.
+  lifecycle {
+    ignore_changes = [spec[0].source[0].helm[0].parameter]
+  }
+
   depends_on = [
     argocd_repository_credentials.manifests_repo_creds,
     argocd_repository.helm_chart_repo,
