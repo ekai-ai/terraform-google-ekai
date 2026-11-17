@@ -72,8 +72,8 @@ for bin in gcloud kubectl terraform jq curl; do
   command -v "$bin" >/dev/null 2>&1 || { echo "ERROR: '$bin' is required but not installed."; exit 1; }
 done
 
-PROJECT_ID=$(grep -E '^project_id[[:space:]]*=' "${TFVARS}" | head -1 | sed 's/.*=[[:space:]]*"\(.*\)".*/\1/')
-REGION=$(grep -E '^region[[:space:]]*=' "${TFVARS}" | head -1 | sed 's/.*=[[:space:]]*"\(.*\)".*/\1/')
+PROJECT_ID=$(grep -E '^project_id[[:space:]]*=' "${TFVARS}" | head -1 | sed 's/^[^"]*"\([^"]*\)".*/\1/')
+REGION=$(grep -E '^region[[:space:]]*=' "${TFVARS}" | head -1 | sed 's/^[^"]*"\([^"]*\)".*/\1/')
 [[ -z "${PROJECT_ID}" || -z "${REGION}" ]] && { echo "ERROR: could not read project_id/region from ${TFVARS}"; exit 1; }
 # CLUSTER_NAME is read from `terraform output` below, not grepped from
 # tfvars -- cluster_name is optional there (defaults to "ekai-<env>-gke"),
