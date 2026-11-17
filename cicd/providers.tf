@@ -37,35 +37,35 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = ">= 5.0"
+      version = "~> 8.11"
     }
     kubernetes = {
       source  = "hashicorp/kubernetes"
-      version = "~> 2.38"
+      version = "~> 3.5"
     }
     helm = {
       source  = "hashicorp/helm"
-      version = "~> 2.16"
+      version = "~> 3.3"
     }
     kubectl = {
-      source  = "gavinbunney/kubectl"
-      version = "~> 1.14"
+      source  = "alekc/kubectl"
+      version = "~> 3.0"
     }
     argocd = {
       source  = "argoproj-labs/argocd"
-      version = "~> 7.11"
+      version = "~> 7.18"
     }
     github = {
       source  = "integrations/github"
-      version = "~> 6.6"
+      version = "~> 6.13"
     }
     time = {
       source  = "hashicorp/time"
-      version = "~> 0.12"
+      version = "~> 0.14"
     }
     random = {
       source  = "hashicorp/random"
-      version = "~> 3.6"
+      version = "~> 3.9"
     }
   }
 }
@@ -98,7 +98,7 @@ provider "kubernetes" {
 }
 
 provider "helm" {
-  kubernetes {
+  kubernetes = {
     host                   = "https://${local.cluster_endpoint}"
     cluster_ca_certificate = base64decode(local.cluster_ca)
     token                  = data.google_client_config.default.access_token

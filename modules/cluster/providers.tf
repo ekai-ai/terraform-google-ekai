@@ -15,38 +15,29 @@
 # actually used by any resource in this module tree (verified by grep — no
 # `provider = google-beta` anywhere) — dropped here as genuinely dead.
 #
-# google's version constraint was originally ">= 5.0, < 6.0" here, which
-# directly CONFLICTS with the bootstrap submodule's "~> 6.0" (empty
-# intersection: nothing satisfies both >= 6.0 and < 6.0). That conflict was
-# invisible in the original 4-layer design because 01-bootstrap and
-# 02-cluster were separate `terraform init`s with independent provider
-# installs. Now that bootstrap+cluster+platform share one combined module
-# tree, Terraform aggregates required_providers constraints across every
-# module actually instantiated in the graph, so the two constraints must be
-# simultaneously satisfiable. Widened to ">= 5.0, < 7.0" here to match what
-# this submodule's own children (modules/gke, modules/cloud_sql,
-# modules/artifact_registry) already declare — this is the smaller, more
-# conservative edit (relaxing the accidentally-narrow constraint) rather than
-# tightening bootstrap's.
+# google's version constraint: every module in this tree declares the same
+# "~> 8.11". Terraform intersects the constraints of every module it loads,
+# so they must agree (an earlier ">= 5.0, < 6.0" vs "~> 6.0" split had an
+# empty intersection and could not install at all).
 terraform {
   required_version = ">= 1.6"
 
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = ">= 5.0, < 7.0"
+      version = "~> 8.11"
     }
     kubernetes = {
       source  = "hashicorp/kubernetes"
-      version = ">= 2.25"
+      version = "~> 3.5"
     }
     helm = {
       source  = "hashicorp/helm"
-      version = ">= 2.12"
+      version = "~> 3.3"
     }
     kubectl = {
-      source  = "gavinbunney/kubectl"
-      version = ">= 1.14"
+      source  = "alekc/kubectl"
+      version = "~> 3.0"
     }
   }
 }

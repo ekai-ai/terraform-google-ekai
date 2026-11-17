@@ -184,6 +184,15 @@ fi
 
 cd "${REPO_ROOT}/examples/self-deploy/cicd"
 terraform init -upgrade -reconfigure -backend-config="../../../env/backend-${ENV}-cicd.tfbackend" 1>/dev/null
+# One-time, idempotent: state written before the kubectl provider moved from
+# the unmaintained gavinbunney/kubectl to its maintained alekc/kubectl fork
+# still names the old provider. A no-op on already-migrated state. Skipped
+# when the state has no resources yet (a new env): state subcommands exit 1
+# with "No state file was found!" there, and set -e would end the script.
+if [[ -n "$(terraform state list 2>/dev/null)" ]]; then
+  terraform state replace-provider -auto-approve \
+    registry.terraform.io/gavinbunney/kubectl registry.terraform.io/alekc/kubectl >/dev/null
+fi
 terraform destroy -auto-approve -compact-warnings -var-file="../../../env/${ENV}.tfvars"
 
 if [[ -n "${PF_PID}" ]]; then
@@ -206,6 +215,15 @@ echo
 echo "════════ terraform destroy (bootstrap + cluster + platform) ════════"
 cd "${REPO_ROOT}/examples/self-deploy/root"
 terraform init -upgrade -reconfigure -backend-config="../../../env/backend-${ENV}.tfbackend" 1>/dev/null
+# One-time, idempotent: state written before the kubectl provider moved from
+# the unmaintained gavinbunney/kubectl to its maintained alekc/kubectl fork
+# still names the old provider. A no-op on already-migrated state. Skipped
+# when the state has no resources yet (a new env): state subcommands exit 1
+# with "No state file was found!" there, and set -e would end the script.
+if [[ -n "$(terraform state list 2>/dev/null)" ]]; then
+  terraform state replace-provider -auto-approve \
+    registry.terraform.io/gavinbunney/kubectl registry.terraform.io/alekc/kubectl >/dev/null
+fi
 if ! terraform destroy -auto-approve -compact-warnings -var-file="../../../env/${ENV}.tfvars"; then
   echo "First destroy attempt failed — waiting 60s then retrying once..."
   sleep 60

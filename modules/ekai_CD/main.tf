@@ -154,8 +154,7 @@ resource "kubectl_manifest" "image_updater" {
     }
   })
 
-  force_conflicts = true
-  depends_on      = [argocd_application.ekai-saas]
+  depends_on = [argocd_application.ekai-saas]
 }
 
 # The var.ekai_namespace Kubernetes namespace itself is created by the caller
