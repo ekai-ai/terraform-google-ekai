@@ -197,7 +197,7 @@ table only covers the handful worth a second look. `project_id`/`region`/
 | `tls_secret_name` | `"wildcard-tls"` | K8s TLS Secret used by ArgoCD and other Ingresses (cert-manager or pre-provisioned) |
 | `nginx_ingress_chart_version` | `"4.10.1"` | ingress-nginx chart version |
 | `eso_chart_version` | `"0.10.3"` | External Secrets Operator chart version |
-| `argocd_chart_version` | `""` → latest | argo-cd chart version |
+| `argocd_chart_version` | `"10.18.0"` | argo-cd chart version |
 | `keda_chart_version` | `"2.16.0"` | KEDA chart version |
 | `reloader_chart_version` | `"1.2.0"` | Stakater Reloader chart version — restarts pods when K8s Secrets change |
 | `cert_manager_chart_version` | `"v1.14.5"` | cert-manager chart version |

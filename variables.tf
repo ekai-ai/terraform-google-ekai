@@ -254,9 +254,9 @@ variable "eso_chart_version" {
 }
 
 variable "argocd_chart_version" {
-  description = "argo-cd Helm chart version. Leave empty to use the latest available."
+  description = "argo-cd Helm chart version. Pinned so every install gets the same, tested ArgoCD."
   type        = string
-  default     = ""
+  default     = "10.18.0"
 }
 
 variable "keda_chart_version" {

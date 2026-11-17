@@ -10,6 +10,7 @@ resource "helm_release" "argocd" {
   namespace  = kubernetes_namespace.argocd.metadata[0].name
   chart      = "argo-cd"
   repository = "https://argoproj.github.io/argo-helm"
+  version    = var.chart_version
 
   values = [yamlencode({
     configs = {
@@ -67,6 +68,7 @@ resource "helm_release" "argocd_image_updater" {
   namespace  = kubernetes_namespace.argocd.metadata[0].name
   chart      = "argocd-image-updater"
   repository = "https://argoproj.github.io/argo-helm"
+  version    = var.image_updater_chart_version
 
   # Default (2m) polls all 5 tracked images against the same public
   # registry ArgoCD's own chart lookup hits -- combined, this triggered

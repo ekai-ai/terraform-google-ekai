@@ -244,6 +244,7 @@ module "argocd" {
   source = "../argocd"
 
   argocd_namespace             = var.argocd_namespace
+  chart_version                = var.argocd_chart_version
   argocd_admin_password_hashed = local.argocd_admin_password_hashed
   argocd_ingress_host          = local.argocd_host
   tls_secret_name              = var.tls_secret_name
@@ -301,6 +302,7 @@ resource "helm_release" "reflector" {
   name             = "reflector"
   repository       = "https://emberstack.github.io/helm-charts"
   chart            = "reflector"
+  version          = var.reflector_chart_version
   namespace        = "kube-system"
   create_namespace = false
   timeout          = 300
@@ -559,7 +561,7 @@ resource "kubernetes_cron_job_v1" "wildcard_cert_selfheal" {
 
             container {
               name  = "selfheal"
-              image = "alpine/k8s:1.29.6"
+              image = "alpine/k8s:1.29.6@sha256:48702a139f248cd08534745058a5d82b148f54886b40ce4e2519f561dd4fa9ec"
 
               command = ["/bin/sh", "-c"]
               args = [<<-EOT
