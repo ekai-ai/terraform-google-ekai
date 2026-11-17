@@ -2,10 +2,13 @@ locals {
   repo_url = var.source_type == "git" ? "https://github.com/${var.github_org}/deployment-files.git" : var.helm_repo_url
 
   # ArgoCD Image Updater annotations -- self-service (source_type == "helm")
-  # only. Every tracked image uses a mutable "latest" tag, so ArgoCD's own
+  # only. Every tracked image uses a mutable tag ("latest", "dev"), so ArgoCD's own
   # diffing never notices a new push (the manifest text never changes);
   # Image Updater polls each image's digest and patches this Application's
   # Helm parameters when it changes, giving ArgoCD a real diff to sync.
+  # Images are watched at var.image_tag -- the same tag the chart deploys on
+  # the first sync -- so an env started on "dev" keeps tracking "dev" for
+  # its whole lifetime instead of jumping to "latest".
   # write-back-method "argocd" patches the Application directly (there's no
   # git repo to commit to for a Helm/OCI-sourced self-service install).
   # Aliases/value paths match the chart's existing per-service
@@ -21,12 +24,12 @@ locals {
 
   image_updater_annotations = var.source_type != "helm" ? {} : merge(
     {
-      # ":latest" is required here, not optional -- the "digest" strategy
-      # needs a specific tag to watch for digest changes; confirmed live
-      # (argocd-image-updater v1.3.0) that omitting it fails every image
+      # The ":<tag>" suffix is required here, not optional -- the "digest"
+      # strategy needs a specific tag to watch for digest changes; confirmed
+      # live (argocd-image-updater v1.3.0) that omitting it fails every image
       # with "cannot use update strategy 'digest' ... without a version
       # constraint", even though the tag itself never changes.
-      "argocd-image-updater.argoproj.io/image-list"        = join(",", [for alias, path in local.image_updater_images : "${alias}=public.ecr.aws/s7m9t1b0/ekai/ekai-${alias}:latest"])
+      "argocd-image-updater.argoproj.io/image-list"        = join(",", [for alias, path in local.image_updater_images : "${alias}=public.ecr.aws/s7m9t1b0/ekai/ekai-${alias}:${var.image_tag}"])
       "argocd-image-updater.argoproj.io/write-back-method" = "argocd"
     },
     merge([
@@ -62,6 +65,12 @@ resource "argocd_repository" "helm_chart_repo" {
     precondition {
       condition     = var.helm_repo_url != ""
       error_message = "helm_repo_url must be set when source_type = \"helm\" (04-cicd's helm_chart_repo_url, cicd_provider = \"none\" only)."
+    }
+    precondition {
+      # A blank tag would make Image Updater watch "ekai-<svc>:" and the
+      # chart deploy an untagged image.
+      condition     = var.image_tag != ""
+      error_message = "image_tag must be set when source_type = \"helm\" (e.g. \"latest\" or \"dev\")."
     }
   }
 }
