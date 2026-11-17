@@ -83,7 +83,7 @@ resource "helm_release" "argocd_image_updater" {
 }
 
 # AppProject/default is auto-created by ArgoCD with a finalizer.
-# Managing it here (force_conflicts = true) ensures Terraform destroys it
+# Managing it here (a client-side apply over the existing object) ensures Terraform destroys it
 # before Helm uninstall, so the finalizer is gone before controllers are killed
 # and the argocd namespace terminates cleanly.
 resource "kubectl_manifest" "argocd_default_project" {
@@ -101,8 +101,7 @@ resource "kubectl_manifest" "argocd_default_project" {
       clusterResourceWhitelist = [{ group = "*", kind = "*" }]
     }
   })
-  force_conflicts = true
-  depends_on      = [helm_release.argocd]
+  depends_on = [helm_release.argocd]
 }
 
 # DNS / Route53 records are NOT created here. The wildcard A record in

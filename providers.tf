@@ -22,15 +22,10 @@
 # modules/github_actions_cicd does, and that module is only ever called by
 # modules/cicd.
 #
-# google's version constraint: bootstrap declared "~> 6.0" and the original
-# cluster layer declared ">= 5.0, < 6.0" — two constraints with an EMPTY
-# intersection. This conflict was invisible in the original 4-layer design
-# (each layer ran its own separate `terraform init`); combining them into one
-# module tree surfaces it. Resolved in modules/cluster/providers.tf by
-# widening that submodule's own constraint to ">= 5.0, < 7.0" (matching what
-# its own children already declared) — see that file's comment for the full
-# reasoning. "~> 6.0" here reflects the version this repo is actually tested
-# against (matches bootstrap's original constraint).
+# google's version constraint: every module in this tree declares the same
+# "~> 8.11". Terraform intersects the constraints of every module it loads,
+# so they must agree (an earlier ">= 5.0, < 6.0" vs "~> 6.0" split had an
+# empty intersection and could not install at all).
 #
 # required_version — the strictest of the 3 original layers' (bootstrap
 # required ">= 1.6", the original cluster layer required ">= 1.6", platform
@@ -51,27 +46,27 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = "~> 6.0"
+      version = "~> 8.11"
     }
     kubernetes = {
       source  = "hashicorp/kubernetes"
-      version = "~> 2.38"
+      version = "~> 3.5"
     }
     helm = {
       source  = "hashicorp/helm"
-      version = "~> 2.16"
+      version = "~> 3.3"
     }
     kubectl = {
-      source  = "gavinbunney/kubectl"
-      version = "~> 1.14"
+      source  = "alekc/kubectl"
+      version = "~> 3.0"
     }
     time = {
       source  = "hashicorp/time"
-      version = "~> 0.12"
+      version = "~> 0.14"
     }
     random = {
       source  = "hashicorp/random"
-      version = "~> 3.6"
+      version = "~> 3.9"
     }
   }
 }
@@ -103,7 +98,7 @@ provider "kubernetes" {
 }
 
 provider "helm" {
-  kubernetes {
+  kubernetes = {
     host                   = "https://${module.cluster.cluster_endpoint}"
     cluster_ca_certificate = base64decode(module.cluster.cluster_ca_certificate)
     token                  = data.google_client_config.default.access_token
