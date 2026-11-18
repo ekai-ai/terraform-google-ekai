@@ -210,32 +210,6 @@ variable "neo4j_credentials" {
   default     = {}
 }
 
-variable "minio_endpoint" {
-  description = "MinIO internal endpoint (sourced from the platform submodule's output). Empty when enable_minio = false."
-  type        = string
-  default     = ""
-}
-
-variable "minio_root_user" {
-  description = "MinIO root user (sourced from the platform submodule's output). Empty when enable_minio = false."
-  type        = string
-  sensitive   = true
-  default     = ""
-}
-
-variable "minio_root_password" {
-  description = "MinIO root password (sourced from the platform submodule's output). Empty when enable_minio = false."
-  type        = string
-  sensitive   = true
-  default     = ""
-}
-
-variable "minio_default_buckets" {
-  description = "MinIO default bucket names (sourced from the platform submodule's output). Empty list when enable_minio = false."
-  type        = list(string)
-  default     = []
-}
-
 variable "cluster_secret_store_name" {
   description = "ClusterSecretStore name used by ExternalSecret resources (sourced from the platform submodule's output)."
   type        = string

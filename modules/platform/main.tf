@@ -31,7 +31,6 @@ locals {
   argocd_admin_password_hashed = local.self_service ? terraform_data.argocd_admin_password_hashed[0].output : var.argocd_admin_password_hashed
 
   argocd_host = coalesce(var.argocd_ingress_host, "argocd.${var.dns_zone}")
-  minio_host  = coalesce(var.minio_host, "minio.${var.dns_zone}")
 }
 
 resource "random_password" "argocd_admin" {
@@ -296,7 +295,7 @@ resource "helm_release" "reloader" {
 }
 
 # ── Reflector — copy TLS secrets across namespaces ───────────────────────────
-# Copies cert-manager wildcard TLS secret to argocd, ekai-saas, minio, etc.
+# Copies cert-manager wildcard TLS secret to argocd, ekai-saas, etc.
 # Annotations on the source secret control which namespaces receive the copy.
 resource "helm_release" "reflector" {
   name             = "reflector"
@@ -421,9 +420,9 @@ resource "kubectl_manifest" "wildcard_cert" {
       annotations = {
         # Reflector copies this secret to all listed namespaces automatically.
         "reflector.v1.k8s.emberstack.com/reflection-allowed"            = "true"
-        "reflector.v1.k8s.emberstack.com/reflection-allowed-namespaces" = "argocd,ekai-saas,minio,ingress-nginx"
+        "reflector.v1.k8s.emberstack.com/reflection-allowed-namespaces" = "argocd,ekai-saas,ingress-nginx"
         "reflector.v1.k8s.emberstack.com/reflection-auto-enabled"       = "true"
-        "reflector.v1.k8s.emberstack.com/reflection-auto-namespaces"    = "argocd,ekai-saas,minio,ingress-nginx"
+        "reflector.v1.k8s.emberstack.com/reflection-auto-namespaces"    = "argocd,ekai-saas,ingress-nginx"
       }
     }
     spec = {
@@ -435,9 +434,9 @@ resource "kubectl_manifest" "wildcard_cert" {
       secretTemplate = {
         annotations = {
           "reflector.v1.k8s.emberstack.com/reflection-allowed"            = "true"
-          "reflector.v1.k8s.emberstack.com/reflection-allowed-namespaces" = "argocd,ekai-saas,minio,ingress-nginx"
+          "reflector.v1.k8s.emberstack.com/reflection-allowed-namespaces" = "argocd,ekai-saas,ingress-nginx"
           "reflector.v1.k8s.emberstack.com/reflection-auto-enabled"       = "true"
-          "reflector.v1.k8s.emberstack.com/reflection-auto-namespaces"    = "argocd,ekai-saas,minio,ingress-nginx"
+          "reflector.v1.k8s.emberstack.com/reflection-auto-namespaces"    = "argocd,ekai-saas,ingress-nginx"
         }
       }
       issuerRef = {
@@ -606,36 +605,6 @@ resource "google_dns_record_set" "argocd" {
   type         = "A"
   ttl          = 300
   rrdatas      = [data.kubernetes_service.nginx_ingress.status[0].load_balancer[0].ingress[0].ip]
-}
-
-# ── MinIO DNS records (Bug 5 fix) ─────────────────────────────────────────────
-resource "google_dns_record_set" "minio" {
-  count        = var.enable_minio ? 1 : 0
-  project      = var.project_id
-  managed_zone = "${var.env}-zone"
-  name         = "${local.minio_host}."
-  type         = "A"
-  ttl          = 300
-  rrdatas      = [data.kubernetes_service.nginx_ingress.status[0].load_balancer[0].ingress[0].ip]
-}
-
-# ── MinIO (optional in-cluster object storage) ───────────────────────────────
-# Set enable_minio = true in tfvars to deploy. Outputs MINIO_* values that
-# the cicd module merges into per-service infra secrets via ESO.
-module "minio" {
-  count  = var.enable_minio ? 1 : 0
-  source = "../minio"
-
-  minio_namespace  = var.minio_namespace
-  minio_host       = local.minio_host
-  tls_secret_name  = var.tls_secret_name
-  default_buckets  = var.minio_default_buckets
-  persistence_size = var.minio_persistence_size
-  storage_class    = var.minio_storage_class
-  mode             = var.minio_replicas >= 4 ? "distributed" : "standalone"
-  replicas         = var.minio_replicas
-
-  depends_on = [time_sleep.wait_for_alb_cleanup, module.eso]
 }
 
 # ── ECR pull auth (optional — GKE pulling from AWS ECR) ──────────────────────

@@ -13,7 +13,7 @@
 #   2. Pulls the handful of values that can't just come from
 #      env/customer.tfvars's own defaults: region, dns_zone, acme_email,
 #      tls_secret_name -- everything else in the template is already a
-#      sensible default (node size, redis/neo4j/minio toggles, etc.).
+#      sensible default (node size, redis/neo4j toggles, etc.).
 #   3. Writes env/<ENV>.tfvars (starting from customer.tfvars, the values
 #      above substituted in) and both backend config files.
 #

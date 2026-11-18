@@ -106,28 +106,6 @@ output "neo4j_credentials" {
   sensitive   = true
 }
 
-output "minio_endpoint" {
-  description = "MinIO internal endpoint (empty when enable_minio = false). Read by the cicd module to merge MINIO_* into the app secret."
-  value       = module.infra.minio_endpoint
-}
-
-output "minio_root_user" {
-  description = "MinIO root user (empty when enable_minio = false). Read by the cicd module to merge MINIO_ACCESS_KEY into the app secret."
-  value       = module.infra.minio_root_user
-  sensitive   = true
-}
-
-output "minio_root_password" {
-  description = "MinIO root password (empty when enable_minio = false). Read by the cicd module to merge MINIO_SECRET_ACCESS_KEY into the app secret."
-  value       = module.infra.minio_root_password
-  sensitive   = true
-}
-
-output "minio_default_buckets" {
-  description = "MinIO default bucket names (empty list when enable_minio = false). Read by the cicd module to set EKAI_BUCKET in the app secret."
-  value       = module.infra.minio_default_buckets
-}
-
 output "cluster_secret_store_name" {
   description = "ClusterSecretStore name. Read by the cicd module's ExternalSecret resource."
   value       = module.infra.cluster_secret_store_name
