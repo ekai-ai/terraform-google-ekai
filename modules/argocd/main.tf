@@ -23,9 +23,13 @@ resource "helm_release" "argocd" {
       # polling against the same public registry, this hit ECR Public's
       # anonymous rate limit (confirmed live: repo-server 429s, "Failed to
       # load target state"). Not needed this often for a chart that only
-      # actually changes on a new Ekai release.
+      # actually changes on a new Ekai release. Raised again to 1h: the chart
+      # is now pinned to an exact version, so this timer only re-checks
+      # for drift that nothing else reports. New images still deploy
+      # promptly, because Image Updater changes the Application and ArgoCD
+      # refreshes it at once, without waiting for this timer.
       cm = {
-        "timeout.reconciliation" = "600s"
+        "timeout.reconciliation" = "3600s"
       }
       secret = {
         argocdServerAdminPassword = var.argocd_admin_password_hashed
