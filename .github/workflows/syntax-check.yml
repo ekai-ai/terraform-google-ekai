@@ -25,3 +25,12 @@ jobs:
       - uses: actions/checkout@v4
       - run: |
           for f in scripts/*.sh; do bash -n "$f"; done
+
+  tflint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: terraform-linters/setup-tflint@v4
+      # Fail on errors only -- the existing warnings (missing provider version
+      # constraints, unused declarations) predate this job and need a cleanup pass.
+      - run: tflint --recursive --minimum-failure-severity=error
