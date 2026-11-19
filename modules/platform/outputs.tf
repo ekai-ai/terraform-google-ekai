@@ -25,25 +25,6 @@ output "argocd_ingress_host" {
   value       = local.argocd_host
 }
 
-output "minio_endpoint" {
-  description = "MinIO internal endpoint — empty when enable_minio=false"
-  value       = var.enable_minio ? module.minio[0].minio_endpoint : ""
-}
-
-output "minio_root_user" {
-  value     = var.enable_minio ? module.minio[0].minio_root_user : ""
-  sensitive = true
-}
-
-output "minio_root_password" {
-  value     = var.enable_minio ? module.minio[0].minio_root_password : ""
-  sensitive = true
-}
-
-output "minio_default_buckets" {
-  value = var.enable_minio ? module.minio[0].default_buckets : []
-}
-
 output "redis_credentials" {
   description = "Redis connection details merged into app secrets by the cicd module. Empty map when enable_redis_stack = false."
   sensitive   = true

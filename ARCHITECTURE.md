@@ -121,7 +121,7 @@ examples/self-deploy/
 modules/
   bootstrap/   # Cloud DNS zone + VPC
   cluster/     # GKE cluster + node pool, Cloud SQL, Artifact Registry
-  platform/    # nginx ingress, ESO, Redis, Neo4j, MinIO, ArgoCD, KEDA, reloader, cert-manager
+  platform/    # nginx ingress, ESO, Redis, Neo4j, ArgoCD, KEDA, reloader, cert-manager
   cicd/        # app secret, ExternalSecret, Workload Identity, ArgoCD Application, DNS records
   <shared low-level modules used by the above>
 env/
@@ -187,7 +187,7 @@ table only covers the handful worth a second look. `project_id`/`region`/
 | `cloudbuild_sa_email` | `""` → auto-computed | Cloud Build SA email for Artifact Registry writer access |
 | `pipelines` | — (required) | Map of service CI/CD pipeline definitions |
 
-### Platform submodule (ingress-nginx, ESO, ArgoCD, KEDA, Reloader, cert-manager, Redis, Neo4j, MinIO, ECR pull auth)
+### Platform submodule (ingress-nginx, ESO, ArgoCD, KEDA, Reloader, cert-manager, Redis, Neo4j, ECR pull auth)
 
 | Variable | Default | What it controls |
 |---|---|---|
@@ -210,11 +210,6 @@ table only covers the handful worth a second look. `project_id`/`region`/
 | `enable_neo4j` | `false` | Deploy Neo4j community edition in-cluster — the app's ERD features need it |
 | `neo4j_namespace` / `neo4j_storage_size` / `neo4j_storage_class` | `"neo4j"` / `"20Gi"` / `"standard-rwo"` | Neo4j namespace and PVC sizing |
 | `neo4j_memory_request` / `neo4j_memory_limit` | `"2Gi"` / `"4Gi"` | Neo4j pod memory sizing |
-| `enable_minio` | `false` | Deploy in-cluster MinIO — self-service always needs this (no native GCS storage path in the app) |
-| `minio_namespace` | `"minio"` | MinIO namespace |
-| `minio_host` | `""` | MinIO API hostname, e.g. `minio.demo.ekai.ai` |
-| `minio_default_buckets` | `["ekai-files"]` | Buckets MinIO creates on first boot |
-| `minio_persistence_size` / `minio_storage_class` / `minio_replicas` | `"20Gi"` / `"standard-rwo"` / `1` | MinIO PVC sizing and replica count |
 | `enable_ecr_pull_auth` | `false` | Deploy the CronJob that lets GKE pull images from AWS ECR — requires the 3 vars below |
 | `ecr_credentials_secret_name` | — (required) | Secret name the CronJob writes ECR credentials into |
 | `aws_account_id` / `aws_ecr_region` | `""` / `"us-east-1"` | AWS account + region owning the ECR registry — required when `enable_ecr_pull_auth = true` |

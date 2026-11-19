@@ -72,10 +72,6 @@ module "cicd" {
   argocd_admin_password_plaintext = data.terraform_remote_state.combined.outputs.argocd_admin_password_plaintext
   redis_credentials               = data.terraform_remote_state.combined.outputs.redis_credentials
   neo4j_credentials               = data.terraform_remote_state.combined.outputs.neo4j_credentials
-  minio_endpoint                  = data.terraform_remote_state.combined.outputs.minio_endpoint
-  minio_root_user                 = data.terraform_remote_state.combined.outputs.minio_root_user
-  minio_root_password             = data.terraform_remote_state.combined.outputs.minio_root_password
-  minio_default_buckets           = data.terraform_remote_state.combined.outputs.minio_default_buckets
   cluster_secret_store_name       = data.terraform_remote_state.combined.outputs.cluster_secret_store_name
   erd_workspace_bucket_name       = data.terraform_remote_state.combined.outputs.erd_workspace_bucket_name
 }

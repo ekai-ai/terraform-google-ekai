@@ -1,7 +1,7 @@
 # terraform-google-ekai
 
 Deploy Ekai into **your own GCP project**. One script provisions the VPC, a
-GKE cluster, Cloud SQL (PostgreSQL), in-cluster Redis/Neo4j/MinIO, ArgoCD,
+GKE cluster, Cloud SQL (PostgreSQL), in-cluster Redis/Neo4j, ArgoCD,
 and the `ekai-saas` Helm chart — everything needed for a working Ekai install.
 
 For how this repo is structured internally (why there are 2 Terraform

@@ -52,7 +52,7 @@ variable "cicd_provider" {
 }
 
 variable "dns_zone" {
-  description = "Base DNS zone for this environment (e.g. dev.example.com) -- derives argocd_ingress_host/minio_host when either is left unset."
+  description = "Base DNS zone for this environment (e.g. dev.example.com) -- derives argocd_ingress_host when it's left unset."
   type        = string
 }
 
@@ -116,45 +116,6 @@ variable "cert_manager_sa_id" {
   description = "Service account ID for cert-manager Workload Identity. Override per-env to avoid conflicts in shared projects."
   type        = string
   default     = ""
-}
-
-# ── MinIO ─────────────────────────────────────────────────────────────────────
-variable "enable_minio" {
-  description = "Deploy in-cluster MinIO object storage."
-  type        = bool
-  default     = false
-}
-
-variable "minio_namespace" {
-  type    = string
-  default = "minio"
-}
-
-variable "minio_host" {
-  description = "MinIO API hostname e.g. minio.demo.ekai.ai. Optional -- defaults to \"minio.<dns_zone>\" when unset."
-  type        = string
-  default     = null
-}
-
-variable "minio_default_buckets" {
-  type    = list(string)
-  default = ["ekai-files"]
-}
-
-variable "minio_persistence_size" {
-  type    = string
-  default = "20Gi"
-}
-
-variable "minio_storage_class" {
-  description = "GKE storage class (standard-rwo, premium-rwo)"
-  type        = string
-  default     = "standard-rwo"
-}
-
-variable "minio_replicas" {
-  type    = number
-  default = 1
 }
 
 # ── ECR pull auth (optional — GKE pulling images from AWS ECR) ────────────────

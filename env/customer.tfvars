@@ -75,13 +75,12 @@ max_nodes         = 2
 # backend DB credentials directly instead of requiring a pre-existing
 # Secret Manager secret.
 
-# ─── In-cluster Redis + Neo4j + MinIO -- the ekai-saas chart's ERD/KEDA needs
-# Redis+Neo4j, and self-service always uses in-cluster MinIO for file storage
-# (the app has no native GCS storage code path) ───────────────────────────────
+# ─── In-cluster Redis + Neo4j -- the ekai-saas chart's ERD/KEDA needs both ─────
+# No file storage backend is provisioned for self-service (MinIO removed, no
+# native GCS storage code path in the app) -- file uploads won't work until
+# one is wired up (e.g. pointing USE_MINIO=false at a real AWS S3 bucket).
 enable_redis_stack = true
 enable_neo4j       = true
-enable_minio       = true
-# minio_host intentionally left unset -- defaults to "minio.<dns_zone>"
 
 # ─── platform submodule ────────────────────────────────────────────────────────
 argocd_namespace = "argocd"

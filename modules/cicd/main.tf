@@ -14,7 +14,7 @@
 # them to their Secret Manager secret before first build.
 #
 # cicd_provider = "none" (self-service): none of the above applies. Terraform
-# generates the entire ekai-${env} secret directly (DB/Redis/Neo4j/MinIO/
+# generates the entire ekai-${env} secret directly (DB/Redis/Neo4j/
 # ArgoCD credentials, service URLs, crypto keys) and ArgoCD pulls the
 # ekai-saas Helm chart directly from a public OCI registry — no CI/CD, no
 # git access, no pre-existing master secret. See local.self_service below.
@@ -119,7 +119,7 @@ data "kubernetes_namespace" "ekai_saas" {
 # ── cicd_provider = "none" only: Terraform CREATES the app's shared secret
 # directly — no more requiring the client to pre-create it with a placeholder
 # JSON before terraform apply. Every value Terraform can know for certain
-# (Cloud SQL/Redis/Neo4j/MinIO creds, service URLs derived from dns_zone,
+# (Cloud SQL/Redis/Neo4j creds, service URLs derived from dns_zone,
 # freshly generated crypto keys, safe non-secret defaults) is filled in for
 # real. GitHub App details are left blank ("") — out of
 # scope for this pass, same as GitHub sync/Langfuse tracing above. The only
@@ -159,21 +159,15 @@ locals {
   generated_redis_creds = local.self_service ? var.redis_credentials : {}
   generated_neo4j_creds = local.self_service ? var.neo4j_credentials : {}
 
-  # GCP-specific — no native GCS storage code path in the app (only
-  # USE_MINIO/MINIO_* or AWS_ACCESS_KEY_ID+EKAI_BUCKET exist), so self-service
-  # always uses the in-cluster MinIO the platform submodule already deploys.
-  generated_minio_creds = local.self_service ? {
-    USE_MINIO               = "true"
-    MINIO_ENDPOINT_URL      = var.minio_endpoint
-    MINIO_ACCESS_KEY        = var.minio_root_user
-    MINIO_SECRET_ACCESS_KEY = var.minio_root_password
-    EKAI_BUCKET             = var.minio_default_buckets[0]
-    # The backend's AwsService constructs an @aws-sdk/client-s3 S3Client
-    # unconditionally (used for MinIO too, since MinIO speaks the S3 API) --
-    # the SDK throws "Error: Region is missing" at startup without SOME
-    # value here, even though MinIO itself never checks it. Confirmed live.
-    # Not client-provided: correctness doesn't matter for MinIO, only
-    # presence/format do, so there's nothing for a client to actually set.
+  # MinIO removed -- no in-cluster or cloud-native file storage is wired for
+  # GCP self-service anymore. The backend's AwsService still constructs an
+  # @aws-sdk/client-s3 S3Client unconditionally and throws "Error: Region is
+  # missing" at startup without SOME AWS_REGION value (confirmed live), so
+  # this stays set to avoid crashing the whole pod over an unrelated SDK
+  # requirement -- actual file-storage calls (no EKAI_BUCKET/AWS_ACCESS_KEY_ID)
+  # are expected to fail at runtime.
+  generated_storage_defaults = local.self_service ? {
+    USE_MINIO  = "false"
     AWS_REGION = "us-east-1"
   } : {}
 
@@ -258,10 +252,12 @@ locals {
     FRONTEND__GITHUB_SYNC_APP_URL = ""
 
     # Signup invite emails go through AWS SES regardless of which cloud
-    # hosts the cluster (no GCP-native equivalent in the app). Since
-    # self-service always uses in-cluster MinIO for file storage (not S3),
-    # this AWS IAM user only needs SES send access, not S3 -- a smaller ask
-    # than AWS's own self-service, which reuses the same credential for both.
+    # hosts the cluster (no GCP-native equivalent in the app). No file
+    # storage backend is wired for GCP self-service (MinIO removed, no
+    # native GCS path in the app) -- if the client wants file storage to
+    # actually work, this same AWS IAM user also needs S3 access, and
+    # USE_MINIO/AWS_REGION in generated_storage_defaults above would need
+    # updating to point at a real bucket.
     AWS_ACCESS_KEY_ID     = "REPLACE_ME"
     AWS_SECRET_ACCESS_KEY = "REPLACE_ME"
     SES_AWS_REGION        = "REPLACE_ME"
@@ -303,7 +299,7 @@ resource "google_secret_manager_secret_version" "app_secret" {
     local.generated_db_urls,
     local.generated_redis_creds,
     local.generated_neo4j_creds,
-    local.generated_minio_creds,
+    local.generated_storage_defaults,
     local.generated_argocd_creds,
     var.secret_value_overrides,
   ))
@@ -311,13 +307,13 @@ resource "google_secret_manager_secret_version" "app_secret" {
   lifecycle {
     ignore_changes = [secret_data]
     precondition {
-      # The platform submodule's enable_redis_stack/enable_neo4j/enable_minio
-      # default to false and aren't forced true for cicd_provider = "none" —
-      # a self-service tfvars that forgets any of them would otherwise ship an
-      # app secret silently missing REDIS_*/NEO4J_*/MINIO_* keys entirely,
-      # only surfacing as a pod crash much later.
-      condition     = length(local.generated_redis_creds) > 0 && length(local.generated_neo4j_creds) > 0 && length(local.generated_minio_creds) > 0
-      error_message = "cicd_provider = \"none\" requires the platform submodule's enable_redis_stack = true, enable_neo4j = true, and enable_minio = true — the ekai-saas chart's ERD/KEDA/file-storage needs all three, and this secret would otherwise be missing REDIS_*/NEO4J_*/MINIO_* keys entirely."
+      # The platform submodule's enable_redis_stack/enable_neo4j default to
+      # false and aren't forced true for cicd_provider = "none" — a
+      # self-service tfvars that forgets either would otherwise ship an app
+      # secret silently missing REDIS_*/NEO4J_* keys entirely, only
+      # surfacing as a pod crash much later.
+      condition     = length(local.generated_redis_creds) > 0 && length(local.generated_neo4j_creds) > 0
+      error_message = "cicd_provider = \"none\" requires the platform submodule's enable_redis_stack = true and enable_neo4j = true — the ekai-saas chart's ERD/KEDA needs both, and this secret would otherwise be missing REDIS_*/NEO4J_* keys entirely."
     }
     precondition {
       # Both flow into self_service_helm_values (imageRegistry/the chart

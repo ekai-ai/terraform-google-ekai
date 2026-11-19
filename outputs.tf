@@ -7,7 +7,7 @@
 #   2. Values ./cicd/'s `data "terraform_remote_state" "combined"` block reads
 #      (artifact_registry_url, backend db creds, cloud_sql_ip,
 #      nginx_ingress_ip, argocd_admin_password_plaintext, redis_credentials,
-#      neo4j_credentials, minio_*, cluster_secret_store_name) — these exist
+#      neo4j_credentials, cluster_secret_store_name) — these exist
 #      here ONLY because ./cicd/ needs them; a human applying this config
 #      alone wouldn't otherwise care. Named to match exactly what the original
 #      cluster/platform layers' outputs were called, so the remote_state read
@@ -134,28 +134,6 @@ output "neo4j_credentials" {
   description = "Neo4j connection details (empty map when enable_neo4j = false). Read by ./cicd/ to merge NEO4J_* into the app secret."
   value       = module.platform.neo4j_credentials
   sensitive   = true
-}
-
-output "minio_endpoint" {
-  description = "MinIO internal endpoint (empty when enable_minio = false). Read by ./cicd/ to merge MINIO_* into the app secret."
-  value       = module.platform.minio_endpoint
-}
-
-output "minio_root_user" {
-  description = "MinIO root user (empty when enable_minio = false). Read by ./cicd/ to merge MINIO_ACCESS_KEY into the app secret."
-  value       = module.platform.minio_root_user
-  sensitive   = true
-}
-
-output "minio_root_password" {
-  description = "MinIO root password (empty when enable_minio = false). Read by ./cicd/ to merge MINIO_SECRET_ACCESS_KEY into the app secret."
-  value       = module.platform.minio_root_password
-  sensitive   = true
-}
-
-output "minio_default_buckets" {
-  description = "MinIO default bucket names (empty list when enable_minio = false). Read by ./cicd/ to set EKAI_BUCKET in the app secret."
-  value       = module.platform.minio_default_buckets
 }
 
 output "cluster_secret_store_name" {

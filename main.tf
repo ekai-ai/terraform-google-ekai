@@ -100,13 +100,6 @@ module "platform" {
   cert_manager_chart_version   = var.cert_manager_chart_version
   enable_cert_manager          = var.enable_cert_manager
   cert_manager_sa_id           = var.cert_manager_sa_id
-  enable_minio                 = var.enable_minio
-  minio_namespace              = var.minio_namespace
-  minio_host                   = var.minio_host
-  minio_default_buckets        = var.minio_default_buckets
-  minio_persistence_size       = var.minio_persistence_size
-  minio_storage_class          = var.minio_storage_class
-  minio_replicas               = var.minio_replicas
   enable_ecr_pull_auth         = var.enable_ecr_pull_auth
   ecr_credentials_secret_name  = var.ecr_credentials_secret_name
   aws_account_id               = var.aws_account_id
