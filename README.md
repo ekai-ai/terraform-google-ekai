@@ -21,6 +21,53 @@ below.
 - A domain you can either delegate a subdomain of to Cloud DNS, or that
   already has a Cloud DNS managed zone
 
+## Network Requirements
+
+Only relevant if your GCP project sits behind a restrictive egress firewall
+(a Shared VPC / hub-and-spoke setup, or an upstream corporate firewall in
+front of it). Give this list to whoever manages that firewall before
+deploying — otherwise the symptoms are confusing: the GKE cluster and node
+pools create successfully, but nodes never finish joining, or Helm releases
+hang until Terraform times out. This list is derived from Google's own
+documentation and this repo's actual module dependencies (grepped below),
+not yet live-fire-tested against a real restrictive firewall the way the
+Azure equivalent of this doc was. Running `self-deploy.sh` from a VM
+*inside* that same restricted network? Then both tables below apply to that
+one firewall, not just the cluster's — Terraform's `kubernetes`/`helm`/
+`kubectl` providers connect to the same GKE control-plane endpoint listed in
+the cluster table.
+
+**Machine running `self-deploy.sh`:** `*.googleapis.com` (`gcloud` auth, the
+Terraform `google`/`google-beta` providers, the GCS state backend, and
+`gcloud services enable` for the APIs this script turns on), `github.com`,
+`raw.githubusercontent.com`, `codeload.github.com`, `registry.terraform.io`,
+`releases.hashicorp.com`, `licensing.ekai.ai`, plus the Helm chart repos:
+`argoproj.github.io`, `charts.jetstack.io`, `charts.external-secrets.io`,
+`kubernetes.github.io`, `kedacore.github.io`, `stakater.github.io`,
+`emberstack.github.io`, `helm.neo4j.com`, `registry-1.docker.io`.
+
+**The GKE cluster (nodes + pods):**
+
+| Destination | Port | Why |
+| --- | --- | --- |
+| The GKE control plane endpoint (a Google-assigned IP printed after cluster creation — `terraform output -C examples/self-deploy/root cluster_endpoint`; node traffic to it stays inside Google's network over VPC peering, since this repo sets `enable_private_nodes = true`) | HTTPS 443, TCP 8132 (Konnectivity proxy, if the cluster uses it) | Google's own required minimum for any GKE cluster — node/pod traffic to the control plane, and the API server's tunnel back to kubelet ([source](https://docs.cloud.google.com/kubernetes-engine/docs/concepts/firewall-rules)) |
+| `*.googleapis.com` (or the `restricted.googleapis.com` VIP, `199.36.153.4/30`, if you route Google API traffic through it instead) | HTTPS 443 | Private Google Access — nodes have no external IP (`enable_private_nodes = true`), so this is how they reach Cloud Logging, Cloud Monitoring, Secret Manager (ESO), the Cloud DNS API (cert-manager's DNS-01 challenges), and Workload Identity's token exchange ([source](https://docs.cloud.google.com/vpc/docs/configure-private-google-access)) |
+| `quay.io` | HTTPS 443 | Container images for ArgoCD + ArgoCD Image Updater |
+| `ghcr.io` | HTTPS 443 | Container images for External Secrets, Reloader, and KEDA |
+| `registry.k8s.io` | HTTPS 443 | Container image for nginx-ingress |
+| `docker.io` | HTTPS 443 | Container images for Redis, Neo4j, and Reflector |
+| `public.ecr.aws` | HTTPS 443 | The `ekai-saas` Helm chart (pulled by ArgoCD's own repo-server) + every app image + Image Updater's digest polling |
+| `licensing.ekai.ai` | HTTPS 443 | Backend pod's own runtime license checks (not just the installer) |
+| `acme-v02.api.letsencrypt.org` | HTTPS 443 | cert-manager's wildcard cert issuance — this repo uses DNS-01 via Cloud DNS, not HTTP-01, but the ACME client itself still calls Let's Encrypt directly |
+| `api.github.com` | HTTPS 443 | GitHub code sync |
+| `email.<region>.amazonaws.com` | HTTPS 443 | **Optional** — only if you fill in the AWS SES fields during setup (your own SES credentials — they're `REPLACE_ME` placeholders otherwise). Needed for signup invite emails to actually send |
+
+No NTP rule needed here, unlike Azure's list: GKE nodes sync time against
+the internal metadata server (`metadata.google.internal`, a link-local
+address), which Google's own Compute Engine guidance recommends over an
+external NTP source — there's nothing to allow a firewall admin for this
+([source](https://docs.cloud.google.com/compute/docs/instances/time-synchronization/configure-ntp)).
+
 ## Deploy
 
 ```bash
