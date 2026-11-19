@@ -481,9 +481,39 @@ if [[ "${PF_READY}" != "true" ]]; then
   echo "  looks unrelated unless you know this step didn't actually succeed."
 fi
 
+# One-time upgrade for installs that predate MinIO's removal. The self-service
+# app secret is created once and never overwritten (ignore_changes on
+# secret_data in modules/cicd), so those installs still have USE_MINIO=true
+# plus MINIO_* and EKAI_BUCKET pointing at a service that no longer exists.
+# Adds a cleaned version. A no-op on fresh installs and once USE_MINIO is
+# "false". Warns instead of failing the deploy: file storage is unavailable
+# either way.
+remove_legacy_minio_settings() {
+  local name="$1" secret_json secret_file
+  if ! secret_json=$(gcloud secrets versions access latest --secret="${name}" --project="${PROJECT_ID}"); then
+    echo "⚠ Could not read the ${name} secret -- skipping the MinIO settings cleanup."
+    return 0
+  fi
+  [[ "$(jq -r '.USE_MINIO // empty' <<<"${secret_json}" 2>/dev/null)" == "true" ]] || return 0
+
+  echo "==> Removing leftover MinIO settings from the ${name} secret (MinIO is no longer deployed)..."
+  secret_file=$(mktemp)
+  chmod 600 "${secret_file}"
+  jq -c 'del(.MINIO_ENDPOINT_URL, .MINIO_ACCESS_KEY, .MINIO_SECRET_ACCESS_KEY, .EKAI_BUCKET) | .USE_MINIO = "false"' <<<"${secret_json}" >"${secret_file}"
+  if gcloud secrets versions add "${name}" --project="${PROJECT_ID}" --data-file="${secret_file}" >/dev/null; then
+    echo "✓ MinIO settings removed."
+  else
+    echo "⚠ Could not update the ${name} secret. Add a new version of it without MINIO_ENDPOINT_URL, MINIO_ACCESS_KEY, MINIO_SECRET_ACCESS_KEY and EKAI_BUCKET, and with USE_MINIO set to \"false\"."
+  fi
+  rm -f "${secret_file}"
+}
+
 cd "${REPO_ROOT}/examples/self-deploy/cicd"
 terraform init -upgrade -reconfigure -backend-config="../../../env/backend-${ENV}-cicd.tfbackend"
 terraform apply -auto-approve -compact-warnings -var-file="../../../env/${ENV}.tfvars"
+if [[ "${CICD_PROVIDER}" == "none" ]]; then
+  remove_legacy_minio_settings "$(terraform output -raw app_secret_name)"
+fi
 
 # The Certificate object's name is always "${ENV}-wildcard-tls" regardless of
 # what tls_secret_name is set to (that only names the Secret it produces) --
