@@ -245,6 +245,7 @@ module "argocd" {
 
   argocd_namespace             = var.argocd_namespace
   chart_version                = var.argocd_chart_version
+  image_updater_chart_version  = var.image_updater_chart_version
   argocd_admin_password_hashed = local.argocd_admin_password_hashed
   argocd_ingress_host          = local.argocd_host
   tls_secret_name              = var.tls_secret_name
