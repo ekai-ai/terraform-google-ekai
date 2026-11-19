@@ -201,6 +201,8 @@ table only covers the handful worth a second look. `project_id`/`region`/
 | `keda_chart_version` | `"2.16.0"` | KEDA chart version |
 | `reloader_chart_version` | `"1.2.0"` | Stakater Reloader chart version — restarts pods when K8s Secrets change |
 | `cert_manager_chart_version` | `"v1.14.5"` | cert-manager chart version |
+| `reflector_chart_version` | `"10.0.78"` | emberstack reflector chart version — mirrors the wildcard TLS Secret into other namespaces |
+| `image_updater_chart_version` | `"1.5.0"` | argocd-image-updater chart version |
 | `enable_cert_manager` | `true` | Deploy cert-manager for GKE TLS — set `false` if TLS is handled externally |
 | `cert_manager_sa_id` | `""` | Service account ID for cert-manager Workload Identity — override per-env in shared projects |
 | `acme_email` | `"umar@ekai.ai"` | Email for Let's Encrypt certificate notifications — **override this** |

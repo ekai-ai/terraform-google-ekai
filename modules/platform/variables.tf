@@ -256,3 +256,9 @@ variable "reflector_chart_version" {
   type        = string
   default     = "10.0.78"
 }
+
+variable "image_updater_chart_version" {
+  description = "argocd-image-updater Helm chart version, passed to the argocd module."
+  type        = string
+  default     = "1.5.0"
+}
