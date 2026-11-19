@@ -28,9 +28,7 @@ Shared VPC / hub-and-spoke setup, or an upstream corporate firewall). Give this
 list to whoever manages that firewall before deploying — otherwise the GKE
 nodes never finish joining, or Helm releases hang until Terraform times out.
 Running `self-deploy.sh` from a VM *inside* that same restricted network? Then
-both lists apply to that one firewall, not just the cluster's. Derived from
-Google's documentation and this repo's own dependencies; not yet tested
-against a real restrictive firewall.
+both lists apply to that one firewall, not just the cluster's.
 
 **Machine running `self-deploy.sh`:** `*.googleapis.com`, `github.com`,
 `raw.githubusercontent.com`, `codeload.github.com`, `registry.terraform.io`,
