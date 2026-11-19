@@ -183,6 +183,8 @@ table only covers the handful worth a second look. `project_id`/`region`/
 | `k8s_version` | `""` → GKE latest stable | Kubernetes version prefix (e.g. `1.35`) |
 | `db_instance_tier` | `"db-custom-2-7680"` | Cloud SQL machine type |
 | `db_version` | `"15"` | PostgreSQL major version |
+| `enable_image_cache` | `true` | Self-service only: pull app images through an Artifact Registry pull-through cache (`ekai-<env>-image-cache`) of ECR Public, so nodes do not hit ECR Public's anonymous per-IP rate limit |
+| `image_cache_upstream_url` | `"https://public.ecr.aws"` | Upstream the image cache fetches from. `existing_image_registry_base_url` must be on this host for the cache to be used |
 | `master_ipv4_cidr_block` | `"172.16.0.0/28"` | CIDR for the GKE control plane private endpoint — must not overlap the VPC/subnet CIDRs |
 | `cloudbuild_sa_email` | `""` → auto-computed | Cloud Build SA email for Artifact Registry writer access |
 | `pipelines` | — (required) | Map of service CI/CD pipeline definitions |
@@ -223,7 +225,7 @@ table only covers the handful worth a second look. `project_id`/`region`/
 | Variable | Default | What it controls |
 |---|---|---|
 | `dns_zone` | `""` | Base DNS zone (self-service only) — derives service hostnames and `FRONTEND_URL` |
-| `existing_image_registry_base_url` | `""` | Where container images are pulled from (self-service only) |
+| `existing_image_registry_base_url` | `""` | Where container images come from (self-service only). With `enable_image_cache`, a `public.ecr.aws/...` value is pulled through the cache instead, and Image Updater still watches this registry for new digests |
 | `helm_chart_repo_url` | `""` | OCI registry the `ekai-saas` chart is published to — bare host+path, no `oci://` prefix |
 | `helm_chart_version` | `"*"` | Chart version — `"*"` auto-tracks latest via ArgoCD, no apply needed per release |
 | `image_tag` | `""` | Image tag deployed — passed through as the chart's `imageTag` |

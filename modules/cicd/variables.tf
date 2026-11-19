@@ -214,3 +214,9 @@ variable "cluster_secret_store_name" {
   description = "ClusterSecretStore name used by ExternalSecret resources (sourced from the platform submodule's output)."
   type        = string
 }
+
+variable "image_cache_registry_url" {
+  description = "Base URL of the root apply's image cache (REGION-docker.pkg.dev/PROJECT/REPO), or \"\" when off. When set and existing_image_registry_base_url is on public.ecr.aws, the chart pulls through the cache."
+  type        = string
+  default     = ""
+}

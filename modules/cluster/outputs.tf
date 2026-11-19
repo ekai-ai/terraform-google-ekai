@@ -94,3 +94,8 @@ output "gke_node_sa_id" {
   description = "Full resource ID of the GKE node service account."
   value       = google_service_account.gke_node.id
 }
+
+output "image_cache_registry_url" {
+  description = "Base URL of the image cache (REGION-docker.pkg.dev/PROJECT/REPO), or \"\" when the cache is off. A path under it maps to the same path on the upstream registry."
+  value       = length(google_artifact_registry_repository.image_cache) > 0 ? "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.image_cache[0].repository_id}" : ""
+}

@@ -421,3 +421,15 @@ variable "neo4j_memory_limit" {
   type    = string
   default = "4Gi"
 }
+
+variable "enable_image_cache" {
+  description = "Self-service only: pull app images through an Artifact Registry pull-through cache of image_cache_upstream_url, instead of from ECR Public directly. Avoids ECR Public's anonymous per-IP rate limit (429s)."
+  type        = bool
+  default     = true
+}
+
+variable "image_cache_upstream_url" {
+  description = "Upstream registry the image cache fetches from, as an https URL with no path. existing_image_registry_base_url must be on this host for the cache to be used."
+  type        = string
+  default     = "https://public.ecr.aws"
+}

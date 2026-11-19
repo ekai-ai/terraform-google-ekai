@@ -71,6 +71,8 @@ module "cluster" {
   pipelines                  = var.pipelines
   cloudbuild_sa_email        = var.cloudbuild_sa_email
   master_ipv4_cidr_block     = var.master_ipv4_cidr_block
+  enable_image_cache         = var.enable_image_cache
+  image_cache_upstream_url   = var.image_cache_upstream_url
 
   # formerly `data "terraform_remote_state" "bootstrap"` in the cluster layer's main.tf
   vpc_name            = module.bootstrap.vpc_name

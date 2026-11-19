@@ -157,3 +157,15 @@ variable "master_ipv4_cidr_block" {
   type        = string
   default     = "172.16.0.0/28"
 }
+
+variable "enable_image_cache" {
+  description = "Self-service only: pull app images through an Artifact Registry remote repository that caches var.image_cache_upstream_url, instead of from the upstream directly. Avoids ECR Public's anonymous per-IP rate limit."
+  type        = bool
+  default     = true
+}
+
+variable "image_cache_upstream_url" {
+  description = "Upstream registry the image cache fetches from, as an https URL with no path."
+  type        = string
+  default     = "https://public.ecr.aws"
+}

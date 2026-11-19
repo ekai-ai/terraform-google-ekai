@@ -330,10 +330,20 @@ resource "google_secret_manager_secret_version" "app_secret" {
 # what this Terraform layer already knows — nothing left for the chart's own
 # (non-functional) blank defaults to fill in.
 locals {
+  # The cache mirrors its upstream path for path, so
+  # public.ecr.aws/s7m9t1b0/ekai/ekai-backend is served at
+  # <cache>/s7m9t1b0/ekai/ekai-backend with the same digests.
+  _ecr_public_prefix = "public.ecr.aws/"
+  chart_image_registry = (
+    var.image_cache_registry_url != "" && startswith(var.existing_image_registry_base_url, local._ecr_public_prefix)
+    ? "${var.image_cache_registry_url}/${trimprefix(var.existing_image_registry_base_url, local._ecr_public_prefix)}"
+    : var.existing_image_registry_base_url
+  )
+
   self_service_helm_values = local.self_service ? yamlencode({
     namespace          = var.ekai_namespace
     dnsZone            = var.dns_zone
-    imageRegistry      = var.existing_image_registry_base_url
+    imageRegistry      = local.chart_image_registry
     imageTag           = var.image_tag
     secretName         = "ekai-${var.env}"
     serviceAccountName = "ekai-app-sa"

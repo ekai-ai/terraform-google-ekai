@@ -35,7 +35,13 @@ locals {
     merge([
       for alias, path in local.image_updater_images : {
         "argocd-image-updater.argoproj.io/${alias}.update-strategy" = "digest"
-        "argocd-image-updater.argoproj.io/${alias}.helm.image-name" = "${path}.image.repository"
+        # Image Updater always writes the image name from image-list (the
+        # ECR path) next to the tag. Sent to a value the chart never reads,
+        # so <path>.image.repository stays unset and the chart keeps
+        # building the repository from imageRegistry -- the image cache,
+        # when it is on. The tag it writes, "<tag>@sha256:<digest>", pins
+        # the same image on either registry.
+        "argocd-image-updater.argoproj.io/${alias}.helm.image-name" = "${path}.image.updaterSourceRepository"
         "argocd-image-updater.argoproj.io/${alias}.helm.image-tag"  = "${path}.image.tag"
       }
     ]...)

@@ -75,6 +75,11 @@ output "artifact_registry_url" {
   value       = module.infra.artifact_registry_url
 }
 
+output "image_cache_registry_url" {
+  description = "Image cache base URL (REGION-docker.pkg.dev/PROJECT/REPO), or \"\" when off. Read by the cicd module through remote_state to point the chart's imageRegistry at the cache."
+  value       = module.infra.image_cache_registry_url
+}
+
 output "backend_db_username" {
   description = "Backend Cloud SQL DB username (cicd_provider = \"none\" only). Read by the cicd module to build DATABASE_URL."
   value       = module.infra.backend_db_username

@@ -80,6 +80,8 @@ module "infra" {
   k8s_version                  = var.k8s_version
   db_instance_tier             = var.db_instance_tier
   db_version                   = var.db_version
+  enable_image_cache           = var.enable_image_cache
+  image_cache_upstream_url     = var.image_cache_upstream_url
   enable_deletion_protection   = var.enable_deletion_protection
   pipelines                    = var.pipelines
   cloudbuild_sa_email          = var.cloudbuild_sa_email

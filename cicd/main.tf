@@ -66,6 +66,9 @@ module "cicd" {
   backend_db_name       = data.terraform_remote_state.combined.outputs.backend_db_name
   cloud_sql_ip          = data.terraform_remote_state.combined.outputs.cloud_sql_ip
 
+  # try(): state written before the image cache existed has no such output.
+  image_cache_registry_url = try(data.terraform_remote_state.combined.outputs.image_cache_registry_url, "")
+
   # formerly `data "terraform_remote_state" "platform"` in the original
   # 04-cicd/main.tf
   nginx_ingress_ip                = data.terraform_remote_state.combined.outputs.nginx_ingress_ip

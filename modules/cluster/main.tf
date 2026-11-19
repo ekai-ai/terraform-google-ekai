@@ -184,3 +184,59 @@ module "artifact_registry" {
 
   depends_on = [google_service_account.gke_node]
 }
+
+###############################################################################
+# Image cache — Artifact Registry remote repository in front of ECR Public
+###############################################################################
+# Self-service clusters pull Ekai's public images through this pull-through
+# cache instead of from ECR Public directly. ECR Public limits anonymous
+# requests per source IP, and every node, ArgoCD and Image Updater share the
+# cluster's one Cloud NAT IP, so image pulls hit 429s (seen live on a dev
+# env). Here ECR is fetched once per image digest, and every later pull comes
+# from Google's network, authenticated as the node service account.
+#
+# Nodes already hold roles/artifactregistry.reader on the whole project
+# (google_project_iam_member.node_artifact_registry_reader), so no extra IAM.
+resource "google_artifact_registry_repository" "image_cache" {
+  count = local.self_service && var.enable_image_cache ? 1 : 0
+
+  project       = var.project_id
+  location      = var.region
+  repository_id = "ekai-${var.env}-image-cache"
+  description   = "Pull-through cache of ${var.image_cache_upstream_url} for ${var.env}"
+  format        = "DOCKER"
+  mode          = "REMOTE_REPOSITORY"
+
+  remote_repository_config {
+    description = "ECR Public, anonymous"
+    docker_repository {
+      custom_repository {
+        uri = var.image_cache_upstream_url
+      }
+    }
+  }
+
+  # Cached copies are only a cache: a deleted one is fetched again from the
+  # upstream on the next pull. These keep storage (about 2 GB per release of
+  # all five images) from growing with every dev push.
+  cleanup_policy_dry_run = false
+  cleanup_policies {
+    id     = "keep-recent"
+    action = "KEEP"
+    most_recent_versions {
+      keep_count = 5
+    }
+  }
+  cleanup_policies {
+    id     = "delete-older-than-30-days"
+    action = "DELETE"
+    condition {
+      older_than = "2592000s"
+    }
+  }
+
+  labels = {
+    env     = var.env
+    managed = "terraform"
+  }
+}

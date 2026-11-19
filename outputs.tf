@@ -95,6 +95,11 @@ output "artifact_registry_url" {
   value       = module.cluster.artifact_registry_url
 }
 
+output "image_cache_registry_url" {
+  description = "Image cache base URL (REGION-docker.pkg.dev/PROJECT/REPO), or \"\" when off. Read by ./cicd/ to point the chart's imageRegistry at the cache."
+  value       = module.cluster.image_cache_registry_url
+}
+
 output "backend_db_username" {
   description = "Backend Cloud SQL DB username (cicd_provider = \"none\" only). Read by ./cicd/ to build DATABASE_URL."
   value       = module.cluster.backend_db_username
