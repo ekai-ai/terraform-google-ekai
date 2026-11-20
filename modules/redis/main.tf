@@ -53,8 +53,13 @@ resource "helm_release" "redis" {
     # working redis-stack release runs bitnami/redis:latest, not a pinned
     # version; matching that exactly here rather than a versioned tag that
     # may already be gone by the time this next applies.
+    #
+    # Bitnami moves "latest" and prunes old tags, so the image is pinned by
+    # digest (the build verified on a live env, 2026-11-17: Redis 8.4 with
+    # the modules below). The digest wins over the tag in the chart.
     image = {
-      tag = "latest"
+      tag    = "latest"
+      digest = "sha256:59078af5aec997137eb95f34fed376487b471e05c9a244c2812a13598c434950"
     }
 
     # Bitnami's own image bundles these module .so files (confirmed present
@@ -116,6 +121,10 @@ resource "helm_release" "redis" {
 
     metrics = {
       enabled = var.metrics_enabled
+      image = {
+        tag    = "latest"
+        digest = "sha256:fa77ec470eb1dde7e99ca06f620ccdee8416324fec08269469ed7f5f9218ea64"
+      }
     }
 
     networkPolicy = {

@@ -73,7 +73,7 @@ variable "tls_secret_name" {
 variable "nginx_ingress_chart_version" {
   description = "ingress-nginx Helm chart version."
   type        = string
-  default     = "4.10.1"
+  default     = "4.15.1"
 }
 
 variable "eso_chart_version" {
@@ -83,9 +83,9 @@ variable "eso_chart_version" {
 }
 
 variable "argocd_chart_version" {
-  description = "argo-cd Helm chart version. Leave empty to use the latest available."
+  description = "argo-cd Helm chart version. Pinned so every install gets the same, tested ArgoCD."
   type        = string
-  default     = ""
+  default     = "10.18.0"
 }
 
 variable "keda_chart_version" {
@@ -249,4 +249,10 @@ variable "enable_erd_gcs_fuse" {
   description = "Create the GCS bucket + Workload Identity SA backing ERD's shared workspace. Must match the cicd layer's same-named variable -- that layer decides whether the chart actually mounts it (gcsFuse vs PVC); this one decides whether the bucket/SA exist at all."
   type        = bool
   default     = true
+}
+
+variable "reflector_chart_version" {
+  description = "emberstack reflector Helm chart version -- mirrors the wildcard TLS Secret into other namespaces."
+  type        = string
+  default     = "10.0.78"
 }

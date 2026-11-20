@@ -53,7 +53,7 @@ if [[ -n "${PROJECT_ID_OVERRIDE}" ]]; then
   PROJECT_ID="${PROJECT_ID_OVERRIDE}"
   echo "==> project_id from argument: ${PROJECT_ID}"
 else
-  PROJECT_ID=$(grep -E '^project_id[[:space:]]*=' "${TFVARS}" | head -1 | sed 's/.*=[[:space:]]*"\(.*\)".*/\1/')
+  PROJECT_ID=$(grep -E '^project_id[[:space:]]*=' "${TFVARS}" | head -1 | sed 's/^[^"]*"\([^"]*\)".*/\1/')
   echo "==> project_id from tfvars: ${PROJECT_ID}"
 fi
 
@@ -63,7 +63,7 @@ if [[ -z "${PROJECT_ID}" || "${PROJECT_ID}" == "REPLACE_ME" ]]; then
   exit 1
 fi
 
-REGION=$(grep -E '^region[[:space:]]*=' "${TFVARS}" | head -1 | sed 's/.*=[[:space:]]*"\(.*\)".*/\1/')
+REGION=$(grep -E '^region[[:space:]]*=' "${TFVARS}" | head -1 | sed 's/^[^"]*"\([^"]*\)".*/\1/')
 if [[ -z "${REGION}" ]]; then
   echo "ERROR: could not extract 'region' from ${TFVARS}"
   exit 1
@@ -75,7 +75,7 @@ fi
 # matches what cicd/main.tf's own data "terraform_remote_state" "combined"
 # computes ("ekai-terraform-state-${var.env}-${var.project_id}") -- that
 # data source has no access to this script's ENV argument, only to var.env.
-ENV_PREFIX=$(grep -E '^env[[:space:]]*=' "${TFVARS}" | head -1 | sed 's/.*=[[:space:]]*"\(.*\)".*/\1/')
+ENV_PREFIX=$(grep -E '^env[[:space:]]*=' "${TFVARS}" | head -1 | sed 's/^[^"]*"\([^"]*\)".*/\1/')
 if [[ -z "${ENV_PREFIX}" ]]; then
   ENV_PREFIX="${ENV}"
 fi
@@ -87,7 +87,7 @@ fi
 # `|| true` -- grep exits 1 (not an error, just "no match") when
 # state_bucket_name is commented out entirely, which under `set -euo
 # pipefail` would otherwise kill the script right here with no error message.
-BUCKET_FROM_TFVARS=$(grep -E '^state_bucket_name[[:space:]]*=' "${TFVARS}" | head -1 | sed 's/.*=[[:space:]]*"\(.*\)".*/\1/' || true)
+BUCKET_FROM_TFVARS=$(grep -E '^state_bucket_name[[:space:]]*=' "${TFVARS}" | head -1 | sed 's/^[^"]*"\([^"]*\)".*/\1/' || true)
 if [[ -n "${BUCKET_FROM_TFVARS}" ]]; then
   BUCKET="${BUCKET_FROM_TFVARS}"
   echo "==> State bucket from tfvars: ${BUCKET}"

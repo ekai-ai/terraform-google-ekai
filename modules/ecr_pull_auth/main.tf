@@ -122,7 +122,7 @@ resource "kubernetes_cron_job_v1" "refresh_ecr_pull_secret" {
 
             container {
               name  = "refresh"
-              image = "alpine/k8s:1.29.6"
+              image = "alpine/k8s:1.29.6@sha256:48702a139f248cd08534745058a5d82b148f54886b40ce4e2519f561dd4fa9ec"
 
               command = ["/bin/sh", "-c"]
               args = [<<-EOT
