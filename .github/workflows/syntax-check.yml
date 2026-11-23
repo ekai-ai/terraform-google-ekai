@@ -31,6 +31,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: v0.66.0
+      # The token avoids GitHub's anonymous API rate limit when --init downloads plugins.
+      - run: tflint --init
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
       # Fail on errors only -- the existing warnings (missing provider version
       # constraints, unused declarations) predate this job and need a cleanup pass.
       - run: tflint --recursive --minimum-failure-severity=error
