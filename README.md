@@ -75,6 +75,22 @@ terraform output -C examples/self-deploy/root
 terraform output -C examples/self-deploy/cicd
 ```
 
+## Upgrading an install that still has MinIO
+
+Earlier versions deployed MinIO for file storage; it's gone now. Re-running
+`./scripts/self-deploy.sh <name>` on such an install **deletes the `minio`
+namespace, its PVCs and their disks** — files stored in MinIO are lost, by
+design. The same run also removes the leftover `USE_MINIO=true`, `MINIO_*` and
+`EKAI_BUCKET` settings from the app's Secret Manager secret (it's created once
+and never overwritten, so they'd otherwise keep pointing at the deleted
+service).
+
+Consuming this as a Terraform module instead of running `self-deploy.sh`? Do
+that last part by hand: add a new version of the secret named by the
+`app_secret_name` output, without `MINIO_ENDPOINT_URL`, `MINIO_ACCESS_KEY`,
+`MINIO_SECRET_ACCESS_KEY` and `EKAI_BUCKET`, and with `USE_MINIO` set to
+`"false"`.
+
 ## Tearing down
 
 ```bash

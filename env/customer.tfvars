@@ -78,7 +78,10 @@ max_nodes         = 2
 # ─── In-cluster Redis + Neo4j -- the ekai-saas chart's ERD/KEDA needs both ─────
 # No file storage backend is provisioned for self-service (MinIO removed, no
 # native GCS storage code path in the app) -- file uploads won't work until
-# one is wired up (e.g. pointing USE_MINIO=false at a real AWS S3 bucket).
+# one is wired up. Pointing the app at a real AWS S3 bucket is only half
+# supported so far: EKAI_BUCKET/AWS_REGION can be set via
+# secret_value_overrides, but AWS_REGION is otherwise hardcoded to us-east-1
+# and there is no EKAI_BUCKET placeholder.
 enable_redis_stack = true
 enable_neo4j       = true
 
