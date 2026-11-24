@@ -16,7 +16,7 @@ below.
 - [gcloud CLI](https://cloud.google.com/sdk/docs/install), authenticated
   (`gcloud auth login`) — see [PERMISSIONS.md](https://github.com/ekai-ai/terraform-google-ekai/blob/main/PERMISSIONS.md) for exactly
   what this identity needs
-- [Terraform](https://developer.hashicorp.com/terraform/install) >= 1.5
+- [Terraform](https://developer.hashicorp.com/terraform/install) >= 1.6
 - `kubectl`, `jq`, `curl`
 - A domain you can either delegate a subdomain of to Cloud DNS, or that
   already has a Cloud DNS managed zone
