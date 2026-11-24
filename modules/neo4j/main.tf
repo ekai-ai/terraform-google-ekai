@@ -29,13 +29,16 @@ resource "helm_release" "neo4j" {
       edition  = "community"
     }
 
+    # jsonencode/jsondecode because the two branches are objects with
+    # different attributes, which a plain conditional can't return.
     volumes = {
-      data = {
-        mode = "defaultStorageClass"
-        defaultStorageClass = {
-          requests = { storage = var.storage_size }
-        }
-      }
+      data = jsondecode(var.storage_class == null ? jsonencode({
+        mode                = "defaultStorageClass"
+        defaultStorageClass = { requests = { storage = var.storage_size } }
+        }) : jsonencode({
+        mode    = "dynamic"
+        dynamic = { storageClassName = var.storage_class, requests = { storage = var.storage_size } }
+      }))
     }
 
     resources = {
