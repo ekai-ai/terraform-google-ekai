@@ -20,3 +20,9 @@ variable "tls_secret_name" {
   type        = string
   default     = "wildcard-tls"
 }
+
+variable "chart_version" {
+  description = "argo-cd Helm chart version. null installs the latest available."
+  type        = string
+  default     = null
+}
