@@ -82,7 +82,6 @@ module "cicd" {
   pipelines                        = var.pipelines
   cd_branch                        = var.cd_branch
   manifest_folder                  = var.manifest_folder
-  argocd_ingress_host              = var.argocd_ingress_host
   github_org                       = var.github_org
   ekai_namespace                   = var.ekai_namespace
   dns_zone_name                    = var.dns_zone_name

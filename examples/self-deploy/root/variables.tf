@@ -294,20 +294,6 @@ variable "acme_email" {
   }
 }
 
-variable "aws_ecr_access_key_id" {
-  description = "AWS Access Key ID for ECR pull. Sensitive — never commit to tfvars."
-  type        = string
-  default     = ""
-  sensitive   = true
-}
-
-variable "aws_ecr_secret_access_key" {
-  description = "AWS Secret Access Key for ECR pull. Sensitive — never commit to tfvars."
-  type        = string
-  default     = ""
-  sensitive   = true
-}
-
 # ── Neo4j ─────────────────────────────────────────────────────────────────────
 variable "enable_neo4j" {
   description = "Deploy Neo4j community edition in-cluster."
@@ -325,12 +311,6 @@ variable "enable_redis_stack" {
 variable "redis_namespace" {
   type    = string
   default = "redis"
-}
-
-variable "redis_password" {
-  type      = string
-  sensitive = true
-  default   = ""
 }
 
 variable "redis_storage_size" {

@@ -164,31 +164,11 @@ variable "acme_email" {
   }
 }
 
-variable "aws_ecr_access_key_id" {
-  description = "AWS Access Key ID for ECR pull. Passed via TF_VAR_aws_ecr_access_key_id in the workflow. Sensitive — never commit to tfvars."
-  type        = string
-  default     = ""
-  sensitive   = true
-}
-
-variable "aws_ecr_secret_access_key" {
-  description = "AWS Secret Access Key for ECR pull. Passed via TF_VAR_aws_ecr_secret_access_key in the workflow. Sensitive — never commit to tfvars."
-  type        = string
-  default     = ""
-  sensitive   = true
-}
-
 # ── Neo4j ─────────────────────────────────────────────────────────────────────
 variable "enable_neo4j" {
   description = "Deploy Neo4j community edition in-cluster."
   type        = bool
   default     = false
-}
-
-variable "secrets_name" {
-  description = "GCP Secret Manager secret name holding all credentials (read by Cloud SQL and Redis modules)."
-  type        = string
-  default     = ""
 }
 
 # ── Redis Stack ────────────────────────────────────────────────────────────────
@@ -201,12 +181,6 @@ variable "enable_redis_stack" {
 variable "redis_namespace" {
   type    = string
   default = "redis"
-}
-
-variable "redis_password" {
-  type      = string
-  sensitive = true
-  default   = ""
 }
 
 variable "redis_storage_size" {
