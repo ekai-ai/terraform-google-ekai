@@ -277,6 +277,18 @@ variable "cert_manager_chart_version" {
   default     = "v1.14.5"
 }
 
+variable "reflector_chart_version" {
+  description = "emberstack reflector Helm chart version. Mirrors the wildcard TLS Secret into other namespaces. Pinned so every install gets the same, tested reflector."
+  type        = string
+  default     = "10.0.78"
+}
+
+variable "image_updater_chart_version" {
+  description = "argocd-image-updater Helm chart version. Pinned so every install gets the same, tested Image Updater."
+  type        = string
+  default     = "1.5.0"
+}
+
 variable "enable_cert_manager" {
   description = "Deploy cert-manager for GKE TLS certificate management. Set false if TLS is handled externally."
   type        = bool

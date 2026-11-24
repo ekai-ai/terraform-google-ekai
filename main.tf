@@ -98,6 +98,8 @@ module "platform" {
   keda_chart_version           = var.keda_chart_version
   reloader_chart_version       = var.reloader_chart_version
   cert_manager_chart_version   = var.cert_manager_chart_version
+  reflector_chart_version      = var.reflector_chart_version
+  image_updater_chart_version  = var.image_updater_chart_version
   enable_cert_manager          = var.enable_cert_manager
   cert_manager_sa_id           = var.cert_manager_sa_id
   enable_ecr_pull_auth         = var.enable_ecr_pull_auth
