@@ -16,10 +16,42 @@ below.
 - [gcloud CLI](https://cloud.google.com/sdk/docs/install), authenticated
   (`gcloud auth login`) — see [PERMISSIONS.md](https://github.com/ekai-ai/terraform-google-ekai/blob/main/PERMISSIONS.md) for exactly
   what this identity needs
-- [Terraform](https://developer.hashicorp.com/terraform/install) >= 1.5
+- [Terraform](https://developer.hashicorp.com/terraform/install) >= 1.6
 - `kubectl`, `jq`, `curl`
 - A domain you can either delegate a subdomain of to Cloud DNS, or that
   already has a Cloud DNS managed zone
+
+## Network Requirements
+
+Only relevant if your GCP project sits behind a restrictive egress firewall (a
+Shared VPC / hub-and-spoke setup, or an upstream corporate firewall). Give this
+list to whoever manages that firewall before deploying — otherwise the GKE
+nodes never finish joining, or Helm releases hang until Terraform times out.
+Running `self-deploy.sh` from a VM *inside* that same restricted network? Then
+both lists apply to that one firewall, not just the cluster's.
+
+**Machine running `self-deploy.sh`:** `*.googleapis.com`, `github.com`,
+`raw.githubusercontent.com`, `codeload.github.com`, `registry.terraform.io`,
+`releases.hashicorp.com`, `licensing.ekai.ai`, plus the Helm chart repos:
+`argoproj.github.io`, `charts.jetstack.io`, `charts.external-secrets.io`,
+`kubernetes.github.io`, `kedacore.github.io`, `stakater.github.io`,
+`emberstack.github.io`, `helm.neo4j.com`, `registry-1.docker.io`.
+
+**The GKE cluster (nodes + pods):**
+
+| Destination | Port | Why |
+| --- | --- | --- |
+| The GKE control plane endpoint (the IP printed after cluster creation) | HTTPS 443, TCP 8132 (Konnectivity proxy, if used) | Google's documented minimum for any GKE cluster ([source](https://docs.cloud.google.com/kubernetes-engine/docs/concepts/firewall-rules)) |
+| `*.googleapis.com` (or the `restricted.googleapis.com` VIP, `199.36.153.4/30`) | HTTPS 443 | Private Google Access — nodes have no external IP, so this is how they reach Secret Manager, Cloud DNS and Cloud Logging/Monitoring ([source](https://docs.cloud.google.com/vpc/docs/configure-private-google-access)) |
+| `quay.io`, `ghcr.io`, `registry.k8s.io`, `docker.io` | HTTPS 443 | Container images for ArgoCD/cert-manager, External Secrets/Reloader/KEDA, nginx-ingress, and Redis/Neo4j/Reflector respectively |
+| `public.ecr.aws` | HTTPS 443 | The `ekai-saas` Helm chart + every app image |
+| `licensing.ekai.ai` | HTTPS 443 | Backend pod's own runtime license checks (not just the installer) |
+| `acme-v02.api.letsencrypt.org` | HTTPS 443 | cert-manager's wildcard cert issuance |
+| `api.github.com` | HTTPS 443 | GitHub code sync |
+
+Only if you fill in the optional AWS-SES placeholders in the customer
+secret: `email.<region>.amazonaws.com` (your own SES credentials) — skip
+if you leave those `REPLACE_ME`.
 
 ## Deploy
 
@@ -74,6 +106,22 @@ secret's name:
 terraform output -C examples/self-deploy/root
 terraform output -C examples/self-deploy/cicd
 ```
+
+## Upgrading an install that still has MinIO
+
+Earlier versions deployed MinIO for file storage; it's gone now. Re-running
+`./scripts/self-deploy.sh <name>` on such an install **deletes the `minio`
+namespace, its PVCs and their disks** — files stored in MinIO are lost, by
+design. The same run also removes the leftover `USE_MINIO=true`, `MINIO_*` and
+`EKAI_BUCKET` settings from the app's Secret Manager secret (it's created once
+and never overwritten, so they'd otherwise keep pointing at the deleted
+service).
+
+Consuming this as a Terraform module instead of running `self-deploy.sh`? Do
+that last part by hand: add a new version of the secret named by the
+`app_secret_name` output, without `MINIO_ENDPOINT_URL`, `MINIO_ACCESS_KEY`,
+`MINIO_SECRET_ACCESS_KEY` and `EKAI_BUCKET`, and with `USE_MINIO` set to
+`"false"`.
 
 ## Tearing down
 
