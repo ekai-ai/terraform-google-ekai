@@ -75,6 +75,12 @@ variable "helm_values" {
   default     = ""
 }
 
+variable "image_tag" {
+  description = "Image tag ArgoCD Image Updater watches for digest changes, e.g. \"dev\" or \"latest\" (source_type = \"helm\" only). Must match the chart's imageTag value, so the env tracks the tag it was deployed with."
+  type        = string
+  default     = ""
+}
+
 variable "env" {
   description = "Environment name (e.g., dev, test, prod)"
   type        = string

@@ -244,7 +244,7 @@ variable "tls_secret_name" {
 variable "nginx_ingress_chart_version" {
   description = "ingress-nginx Helm chart version."
   type        = string
-  default     = "4.10.1"
+  default     = "4.15.1"
 }
 
 variable "eso_chart_version" {
@@ -254,9 +254,9 @@ variable "eso_chart_version" {
 }
 
 variable "argocd_chart_version" {
-  description = "argo-cd Helm chart version. Leave empty to use the latest available."
+  description = "argo-cd Helm chart version. Pinned so every install gets the same, tested ArgoCD."
   type        = string
-  default     = ""
+  default     = "10.18.0"
 }
 
 variable "keda_chart_version" {
@@ -275,6 +275,18 @@ variable "cert_manager_chart_version" {
   description = "cert-manager Helm chart version."
   type        = string
   default     = "v1.14.5"
+}
+
+variable "reflector_chart_version" {
+  description = "emberstack reflector Helm chart version. Mirrors the wildcard TLS Secret into other namespaces. Pinned so every install gets the same, tested reflector."
+  type        = string
+  default     = "10.0.78"
+}
+
+variable "image_updater_chart_version" {
+  description = "argocd-image-updater Helm chart version. Pinned so every install gets the same, tested Image Updater."
+  type        = string
+  default     = "1.5.0"
 }
 
 variable "enable_cert_manager" {

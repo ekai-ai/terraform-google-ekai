@@ -386,6 +386,7 @@ module "ekai_CD" {
   helm_repo_url      = var.helm_chart_repo_url
   helm_chart_version = var.helm_chart_version
   helm_values        = local.self_service_helm_values
+  image_tag          = var.image_tag
 
   depends_on = [
     module.cloud_build,

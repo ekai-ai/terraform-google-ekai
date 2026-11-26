@@ -22,7 +22,13 @@ variable "tls_secret_name" {
 }
 
 variable "chart_version" {
-  description = "argo-cd Helm chart version. null installs the latest available."
+  description = "argo-cd Helm chart version."
   type        = string
-  default     = null
+  default     = "10.18.0"
+}
+
+variable "image_updater_chart_version" {
+  description = "argocd-image-updater Helm chart version."
+  type        = string
+  default     = "1.5.0"
 }

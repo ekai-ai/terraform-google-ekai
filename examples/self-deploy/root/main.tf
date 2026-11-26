@@ -34,27 +34,27 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = "~> 6.0"
+      version = "~> 8.11"
     }
     kubernetes = {
       source  = "hashicorp/kubernetes"
-      version = "~> 2.38"
+      version = "~> 3.5"
     }
     helm = {
       source  = "hashicorp/helm"
-      version = "~> 2.16"
+      version = "~> 3.3"
     }
     kubectl = {
-      source  = "gavinbunney/kubectl"
-      version = "~> 1.14"
+      source  = "alekc/kubectl"
+      version = "~> 3.0"
     }
     time = {
       source  = "hashicorp/time"
-      version = "~> 0.12"
+      version = "~> 0.14"
     }
     random = {
       source  = "hashicorp/random"
-      version = "~> 3.6"
+      version = "~> 3.9"
     }
   }
 }
@@ -94,6 +94,8 @@ module "infra" {
   keda_chart_version           = var.keda_chart_version
   reloader_chart_version       = var.reloader_chart_version
   cert_manager_chart_version   = var.cert_manager_chart_version
+  reflector_chart_version      = var.reflector_chart_version
+  image_updater_chart_version  = var.image_updater_chart_version
   enable_cert_manager          = var.enable_cert_manager
   cert_manager_sa_id           = var.cert_manager_sa_id
   enable_ecr_pull_auth         = var.enable_ecr_pull_auth

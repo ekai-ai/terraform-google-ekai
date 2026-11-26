@@ -21,36 +21,18 @@ resource "helm_release" "nginx_ingress" {
   version    = var.chart_version
   timeout    = 600
 
-  # Two replicas for availability across GKE node pools
-  set {
-    name  = "controller.replicaCount"
-    value = "2"
-  }
-
-  set {
-    name  = "controller.resources.requests.cpu"
-    value = "100m"
-  }
-
-  set {
-    name  = "controller.resources.requests.memory"
-    value = "128Mi"
-  }
-
-  set {
-    name  = "controller.service.type"
-    value = "LoadBalancer"
-  }
-
-  # Only set loadBalancerIP when a static IP was provided; an empty string
-  # would cause GKE to reject the Service spec.
-  dynamic "set" {
-    for_each = var.static_ip != null ? [var.static_ip] : []
-    content {
-      name  = "controller.service.loadBalancerIP"
-      value = set.value
-    }
-  }
+  # Two replicas for availability across GKE node pools. Only set
+  # loadBalancerIP when a static IP was provided; an empty string would cause
+  # GKE to reject the Service spec.
+  set = concat(
+    [
+      { name = "controller.replicaCount", value = "2" },
+      { name = "controller.resources.requests.cpu", value = "100m" },
+      { name = "controller.resources.requests.memory", value = "128Mi" },
+      { name = "controller.service.type", value = "LoadBalancer" },
+    ],
+    var.static_ip != null ? [{ name = "controller.service.loadBalancerIP", value = var.static_ip }] : [],
+  )
 }
 
 # GKE's external load-balancer provisioner runs asynchronously after the

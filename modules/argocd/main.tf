@@ -23,9 +23,14 @@ resource "helm_release" "argocd" {
       # polling against the same public registry, this hit ECR Public's
       # anonymous rate limit (confirmed live: repo-server 429s, "Failed to
       # load target state"). Not needed this often for a chart that only
-      # actually changes on a new Ekai release.
+      # actually changes on a new Ekai release. Raised again to 1h to stay
+      # under that limit. The tradeoff: helm_chart_version is still "*", so
+      # this timer is what picks up a new chart release, and that can take up
+      # to an hour to reach an install. New images still deploy promptly,
+      # because Image Updater changes the Application and ArgoCD refreshes it
+      # at once, without waiting for this timer.
       cm = {
-        "timeout.reconciliation" = "600s"
+        "timeout.reconciliation" = "3600s"
       }
       secret = {
         argocdServerAdminPassword = var.argocd_admin_password_hashed
@@ -68,6 +73,7 @@ resource "helm_release" "argocd_image_updater" {
   namespace  = kubernetes_namespace.argocd.metadata[0].name
   chart      = "argocd-image-updater"
   repository = "https://argoproj.github.io/argo-helm"
+  version    = var.image_updater_chart_version
 
   # Default (2m) polls all 5 tracked images against the same public
   # registry ArgoCD's own chart lookup hits -- combined, this triggered
@@ -82,7 +88,7 @@ resource "helm_release" "argocd_image_updater" {
 }
 
 # AppProject/default is auto-created by ArgoCD with a finalizer.
-# Managing it here (force_conflicts = true) ensures Terraform destroys it
+# Managing it here (a client-side apply over the existing object) ensures Terraform destroys it
 # before Helm uninstall, so the finalizer is gone before controllers are killed
 # and the argocd namespace terminates cleanly.
 resource "kubectl_manifest" "argocd_default_project" {
@@ -100,8 +106,7 @@ resource "kubectl_manifest" "argocd_default_project" {
       clusterResourceWhitelist = [{ group = "*", kind = "*" }]
     }
   })
-  force_conflicts = true
-  depends_on      = [helm_release.argocd]
+  depends_on = [helm_release.argocd]
 }
 
 # DNS / Route53 records are NOT created here. The wildcard A record in

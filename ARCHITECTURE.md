@@ -195,12 +195,14 @@ table only covers the handful worth a second look. `project_id`/`region`/
 | `argocd_admin_password_hashed` | `""` | Bcrypt hash; ignored for self-service (generated directly instead) |
 | `argocd_ingress_host` | — (required) | ArgoCD's hostname, e.g. `argocd.client1.ekai.ai` |
 | `tls_secret_name` | `"wildcard-tls"` | K8s TLS Secret used by ArgoCD and other Ingresses (cert-manager or pre-provisioned) |
-| `nginx_ingress_chart_version` | `"4.10.1"` | ingress-nginx chart version |
+| `nginx_ingress_chart_version` | `"4.15.1"` | ingress-nginx chart version |
 | `eso_chart_version` | `"0.10.3"` | External Secrets Operator chart version |
-| `argocd_chart_version` | `""` → latest | argo-cd chart version |
+| `argocd_chart_version` | `"10.18.0"` | argo-cd chart version |
 | `keda_chart_version` | `"2.16.0"` | KEDA chart version |
 | `reloader_chart_version` | `"1.2.0"` | Stakater Reloader chart version — restarts pods when K8s Secrets change |
 | `cert_manager_chart_version` | `"v1.14.5"` | cert-manager chart version |
+| `reflector_chart_version` | `"10.0.78"` | emberstack reflector chart version — mirrors the wildcard TLS Secret into other namespaces |
+| `image_updater_chart_version` | `"1.5.0"` | argocd-image-updater chart version |
 | `enable_cert_manager` | `true` | Deploy cert-manager for GKE TLS — set `false` if TLS is handled externally |
 | `cert_manager_sa_id` | `""` | Service account ID for cert-manager Workload Identity — override per-env in shared projects |
 | `acme_email` | `"umar@ekai.ai"` | Email for Let's Encrypt certificate notifications — **override this** |

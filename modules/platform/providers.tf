@@ -17,23 +17,23 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = ">= 5.0"
+      version = "~> 8.11"
     }
     kubernetes = {
       source  = "hashicorp/kubernetes"
-      version = "~> 2.38"
+      version = "~> 3.5"
     }
     helm = {
       source  = "hashicorp/helm"
-      version = "~> 2.16"
+      version = "~> 3.3"
     }
     kubectl = {
-      source  = "gavinbunney/kubectl"
-      version = "~> 1.14"
+      source  = "alekc/kubectl"
+      version = "~> 3.0"
     }
     time = {
       source  = "hashicorp/time"
-      version = "~> 0.12"
+      version = "~> 0.14"
     }
     random = {
       source  = "hashicorp/random"
