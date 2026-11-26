@@ -206,14 +206,12 @@ table only covers the handful worth a second look. `project_id`/`region`/
 | `acme_email` | `"umar@ekai.ai"` | Email for Let's Encrypt certificate notifications — **override this** |
 | `enable_redis_stack` | `false` | Deploy Redis Stack (Bitnami chart) in-cluster — the app's ERD/KEDA features need it |
 | `redis_namespace` / `redis_storage_size` / `redis_storage_class` | `"redis"` / `"10Gi"` / `"standard-rwo"` | Redis namespace and PVC sizing |
-| `redis_password` | `""` | Redis password override |
 | `enable_neo4j` | `false` | Deploy Neo4j community edition in-cluster — the app's ERD features need it |
-| `neo4j_namespace` / `neo4j_storage_size` / `neo4j_storage_class` | `"neo4j"` / `"20Gi"` / `"standard-rwo"` | Neo4j namespace and PVC sizing |
+| `neo4j_namespace` / `neo4j_storage_size` / `neo4j_storage_class` | `"neo4j"` / `"20Gi"` / `null` (GKE's default StorageClass) | Neo4j namespace and PVC sizing; the class can't change once the PVC exists |
 | `neo4j_memory_request` / `neo4j_memory_limit` | `"2Gi"` / `"4Gi"` | Neo4j pod memory sizing |
 | `enable_ecr_pull_auth` | `false` | Deploy the CronJob that lets GKE pull images from AWS ECR — requires the 3 vars below |
 | `ecr_credentials_secret_name` | — (required) | Secret name the CronJob writes ECR credentials into |
 | `aws_account_id` / `aws_ecr_region` | `""` / `"us-east-1"` | AWS account + region owning the ECR registry — required when `enable_ecr_pull_auth = true` |
-| `aws_ecr_access_key_id` / `aws_ecr_secret_access_key` | `""` / `""` | AWS credentials for ECR pull — sensitive, never commit to tfvars |
 | `ecr_namespace` | `"ekai-saas"` | Namespace where the ECR pull secret and CronJob are created |
 
 ### `cicd/variables.tf` — self-service app config
@@ -237,6 +235,5 @@ table only covers the handful worth a second look. `project_id`/`region`/
 ### `cicd/variables.tf` — not functional in this distribution
 
 Read only when `cicd_provider != "none"` (self-service has no default and
-doesn't need to set these): `cd_branch`, `github_org`. `pipelines` and
-`argocd_ingress_host` are declared here too but are shared/required — see
-above.
+doesn't need to set these): `cd_branch`, `github_org`. `pipelines` is
+declared here too but is shared/required — see above.

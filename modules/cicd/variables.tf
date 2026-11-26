@@ -111,11 +111,6 @@ variable "manifest_folder" {
   default     = "manifest-files"
 }
 
-variable "argocd_ingress_host" {
-  description = "ArgoCD server hostname — used by the ArgoCD Terraform provider to connect (e.g. argocd.client1.ekai.ai)."
-  type        = string
-}
-
 variable "github_org" {
   description = "GitHub organisation name (owner of all repos). Only read when cicd_provider != \"none\" — a self-service client has no default, doesn't need to set this."
   type        = string

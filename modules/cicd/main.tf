@@ -78,15 +78,13 @@ module "cloud_build" {
   count  = var.cicd_provider == "cloud_build" ? 1 : 0
   source = "../cloud_build"
 
-  project_id      = var.project_id
-  region          = var.region
-  env             = var.env
-  pipelines       = var.pipelines
-  secrets_name    = var.secrets_name
-  github_owner    = var.github_org
-  cd_branch       = var.cd_branch
-  manifest_folder = var.manifest_folder
-  registry_url    = local.registry_url
+  project_id   = var.project_id
+  env          = var.env
+  pipelines    = var.pipelines
+  secrets_name = var.secrets_name
+  github_owner = var.github_org
+  cd_branch    = var.cd_branch
+  registry_url = local.registry_url
 }
 
 # ── GitHub Actions CI/CD — WIF + per-repo SAs + workflow YAML ────────────────

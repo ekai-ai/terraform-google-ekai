@@ -29,8 +29,3 @@ variable "pipelines" {
   }))
   default = {}
 }
-
-variable "cluster_name" {
-  description = "Name of the GKE cluster. Reserved for future use (e.g. data sources, cluster-scoped conditions). Not consumed directly by current resources."
-  type        = string
-}
