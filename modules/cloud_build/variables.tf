@@ -3,11 +3,6 @@ variable "project_id" {
   type        = string
 }
 
-variable "region" {
-  description = "GCP region (e.g. us-central1)."
-  type        = string
-}
-
 variable "env" {
   description = "Environment name (e.g. dev, staging, prod)."
   type        = string
@@ -42,12 +37,6 @@ variable "github_owner" {
 variable "cd_branch" {
   description = "Git branch in deployment-files used for CD manifest updates (e.g. main)."
   type        = string
-}
-
-variable "manifest_folder" {
-  description = "Default folder inside deployment-files where manifests live. Can be overridden per pipeline via pipelines[*].manifest_folder."
-  type        = string
-  default     = "manifest-files"
 }
 
 variable "registry_url" {

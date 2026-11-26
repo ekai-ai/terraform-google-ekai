@@ -104,12 +104,9 @@ module "infra" {
   aws_ecr_region               = var.aws_ecr_region
   ecr_namespace                = var.ecr_namespace
   acme_email                   = var.acme_email
-  aws_ecr_access_key_id        = var.aws_ecr_access_key_id
-  aws_ecr_secret_access_key    = var.aws_ecr_secret_access_key
   enable_neo4j                 = var.enable_neo4j
   enable_redis_stack           = var.enable_redis_stack
   redis_namespace              = var.redis_namespace
-  redis_password               = var.redis_password
   redis_storage_size           = var.redis_storage_size
   redis_storage_class          = var.redis_storage_class
   neo4j_namespace              = var.neo4j_namespace

@@ -1,31 +1,15 @@
 # Provider requirements are in versions.tf
 # Variables are in variables.tf — outputs are in outputs.tf
 
-# ─── Data sources ─────────────────────────────────────────────────────────────
-
-data "google_project" "current" {
-  project_id = var.project_id
-}
-
 # ─── Secrets ──────────────────────────────────────────────────────────────────
-# Read the shared secret (JSON blob) to extract the GitHub token.
+# Read the shared secret (JSON blob) to extract the GitHub username and email.
 data "google_secret_manager_secret_version" "secrets" {
   project = var.project_id
   secret  = var.secrets_name
 }
 
 locals {
-  _secret      = jsondecode(data.google_secret_manager_secret_version.secrets.secret_data)
-  github_token = local._secret["github_token"]
-
-  # User-managed Cloud Build service account email.
-  # GCP requires a user-managed SA when using available_secrets (Secret Manager).
-  # The default SA (<number>@cloudbuild.gserviceaccount.com) cannot be explicitly
-  # set in the trigger's service_account field.
-  cloudbuild_sa = "${var.env}-cloudbuild-sa@${var.project_id}.iam.gserviceaccount.com"
-
-  # Deployment-files repo URL — same convention as AWS module.
-  deploy_repo_url = "https://github.com/${var.github_owner}/deployment-files.git"
+  _secret = jsondecode(data.google_secret_manager_secret_version.secrets.secret_data)
 }
 
 # ─── User-managed Cloud Build Service Account ─────────────────────────────────

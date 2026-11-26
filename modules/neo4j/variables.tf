@@ -20,8 +20,9 @@ variable "storage_size" {
 }
 
 variable "storage_class" {
-  type    = string
-  default = "standard-rwo"
+  description = "StorageClass for the Neo4j data volume. null uses GKE's default StorageClass (standard-rwo). A PVC's class can't change after it's created, so don't set this on an install that already has one."
+  type        = string
+  default     = null
 }
 
 variable "memory_request" {
