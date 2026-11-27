@@ -211,8 +211,7 @@ table only covers the handful worth a second look. `project_id`/`region`/
 | `enable_neo4j` | `false` | Deploy Neo4j community edition in-cluster — the app's ERD features need it |
 | `neo4j_namespace` / `neo4j_storage_size` / `neo4j_storage_class` | `"neo4j"` / `"20Gi"` / `null` (GKE's default StorageClass) | Neo4j namespace and PVC sizing; the class can't change once the PVC exists |
 | `neo4j_memory_request` / `neo4j_memory_limit` | `"2Gi"` / `"4Gi"` | Neo4j pod memory sizing |
-| `enable_erd_gcs_fuse` | `true` | Back ERD's shared workspace with a GCS bucket mounted through GCS FUSE |
-| `enable_erd_filestore` | `false` | Back ERD's shared workspace with Filestore, a ReadWriteMany NFS volume (one 1 TiB Basic HDD instance). Set `enable_erd_gcs_fuse = false` with it. The instance outlives `terraform destroy` |
+| `enable_erd_filestore` | `true` | Back ERD's shared workspace with Filestore, a ReadWriteMany NFS volume (one 1 TiB Basic HDD instance). The instance outlives `terraform destroy`. `false` uses a ReadWriteOnce PVC of `erd_storage_class` instead |
 | `enable_ecr_pull_auth` | `false` | Deploy the CronJob that lets GKE pull images from AWS ECR — requires the 3 vars below |
 | `ecr_credentials_secret_name` | — (required) | Secret name the CronJob writes ECR credentials into |
 | `aws_account_id` / `aws_ecr_region` | `""` / `"us-east-1"` | AWS account + region owning the ECR registry — required when `enable_ecr_pull_auth = true` |

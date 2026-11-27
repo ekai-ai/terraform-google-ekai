@@ -44,7 +44,6 @@ module "cicd" {
   helm_chart_version               = var.helm_chart_version
   image_tag                        = var.image_tag
   erd_storage_class                = var.erd_storage_class
-  enable_erd_gcs_fuse              = var.enable_erd_gcs_fuse
   ingress_class_name               = var.ingress_class_name
   tls_secret_name                  = var.tls_secret_name
   secret_value_overrides           = var.secret_value_overrides
@@ -71,8 +70,6 @@ module "cicd" {
   redis_credentials               = data.terraform_remote_state.combined.outputs.redis_credentials
   neo4j_credentials               = data.terraform_remote_state.combined.outputs.neo4j_credentials
   cluster_secret_store_name       = data.terraform_remote_state.combined.outputs.cluster_secret_store_name
-  erd_workspace_bucket_name       = data.terraform_remote_state.combined.outputs.erd_workspace_bucket_name
-
   # try(): state written before Filestore support has no such output.
   erd_filestore_storage_class = try(data.terraform_remote_state.combined.outputs.erd_filestore_storage_class, "")
 }

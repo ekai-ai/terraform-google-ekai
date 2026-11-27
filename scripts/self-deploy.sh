@@ -135,8 +135,8 @@ REQUIRED_APIS=(
   # yet and the IAM grant fails with "Service account ... does not exist"
   # (confirmed live, Secunetics GCP feedback, 2026-10).
   cloudbuild.googleapis.com
-  # GKE's Filestore CSI driver needs it when enable_erd_filestore = true.
-  # Enabling it costs nothing while no instance exists.
+  # GKE's Filestore CSI driver needs it for ERD's workspace
+  # (enable_erd_filestore, on by default).
   file.googleapis.com
 )
 echo "==> Enabling: ${REQUIRED_APIS[*]}"
@@ -213,10 +213,6 @@ PROJECT_ROLES=(
   roles/iam.serviceAccountAdmin
   roles/iam.serviceAccountUser
   roles/resourcemanager.projectIamAdmin
-  # Needed for platform's google_storage_bucket.erd_workspace (+ its bucket
-  # IAM binding) -- the state-bucket-scoped roles/storage.admin grant below
-  # only covers that one bucket, not project-wide bucket creation.
-  roles/storage.admin
 )
 for ROLE in "${PROJECT_ROLES[@]}"; do
   # Rapid sequential add-iam-policy-binding calls each do their own

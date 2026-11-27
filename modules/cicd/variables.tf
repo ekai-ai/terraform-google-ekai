@@ -50,25 +50,13 @@ variable "image_tag" {
 }
 
 variable "erd_storage_class" {
-  description = "StorageClass for ERD's workspace PVC (cicd_provider = \"none\" only) — passed through as the ekai-saas chart's erd.workspace.storageClassName. Ignored when enable_erd_gcs_fuse = true."
+  description = "StorageClass for ERD's workspace PVC (cicd_provider = \"none\" only) — passed through as the ekai-saas chart's erd.workspace.storageClassName. Used only when enable_erd_filestore = false in the combined root."
   type        = string
   default     = "standard-rwo"
 }
 
-variable "enable_erd_gcs_fuse" {
-  description = "Back ERD's shared workspace with a GCS bucket (via the GCS FUSE CSI driver) instead of a ReadWriteOnce PVC (cicd_provider = \"none\" only). Avoids Multi-Attach scheduling deadlocks when erd/erd-worker/document-worker/profile-worker land on different nodes. Requires the platform submodule's GCS bucket + Workload Identity SA (created unconditionally there). Defaults to true -- this repo is GCP-only, so there's no cross-cloud reason to keep the older PVC path as the default here."
-  type        = bool
-  default     = true
-}
-
-variable "erd_workspace_bucket_name" {
-  description = "ERD workspace GCS bucket name, read from the combined root's state (empty when enable_erd_gcs_fuse = false there). Single source of truth -- no longer reconstructed independently here, which used to require the two layers' bucket-naming logic to be kept manually in sync."
-  type        = string
-  default     = ""
-}
-
 variable "erd_filestore_storage_class" {
-  description = "Filestore StorageClass for ERD's workspace, read from the combined root's state (empty when enable_erd_filestore = false there). When set, the chart mounts the workspace as a ReadWriteMany PVC of this class, and enable_erd_gcs_fuse is ignored."
+  description = "Filestore StorageClass for ERD's workspace, read from the combined root's state (empty when enable_erd_filestore = false there). When set, the chart mounts the workspace as a ReadWriteMany PVC of this class. When empty, it mounts a ReadWriteOnce PVC of erd_storage_class."
   type        = string
   default     = ""
 }

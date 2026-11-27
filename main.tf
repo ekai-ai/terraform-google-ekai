@@ -119,7 +119,6 @@ module "platform" {
   neo4j_storage_class          = var.neo4j_storage_class
   neo4j_memory_request         = var.neo4j_memory_request
   neo4j_memory_limit           = var.neo4j_memory_limit
-  enable_erd_gcs_fuse          = var.enable_erd_gcs_fuse
   enable_erd_filestore         = var.enable_erd_filestore
   vpc_name                     = module.bootstrap.vpc_name
 

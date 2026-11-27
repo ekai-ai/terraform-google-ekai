@@ -35,5 +35,4 @@ roles/artifactregistry.admin
 roles/iam.serviceAccountAdmin
 roles/iam.serviceAccountUser
 roles/resourcemanager.projectIamAdmin
-roles/storage.admin                       # create the ERD workspace GCS bucket (enable_erd_gcs_fuse)
 ```

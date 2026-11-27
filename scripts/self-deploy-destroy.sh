@@ -263,10 +263,6 @@ if [[ "${CLEAN_SA}" =~ ^[Yy]$ ]]; then
     roles/iam.serviceAccountAdmin
     roles/iam.serviceAccountUser
     roles/resourcemanager.projectIamAdmin
-    # Needed for platform's google_storage_bucket.erd_workspace -- this one
-    # had drifted out of sync with self-deploy.sh's actual grant list, so the
-    # binding was never removed and was left dangling on every SA deletion.
-    roles/storage.admin
   )
   for ROLE in "${PROJECT_ROLES[@]}"; do
     gcloud projects remove-iam-policy-binding "${PROJECT_ID}" \

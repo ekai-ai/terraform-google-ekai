@@ -141,10 +141,6 @@ output "cluster_secret_store_name" {
   value       = module.platform.cluster_secret_store_name
 }
 
-output "erd_workspace_bucket_name" {
-  description = "ERD workspace GCS bucket name (empty when enable_erd_gcs_fuse = false). Read by ./cicd/ instead of reconstructing the name independently."
-  value       = module.platform.erd_workspace_bucket_name
-}
 
 output "erd_filestore_storage_class" {
   description = "Filestore StorageClass for ERD's workspace (empty when enable_erd_filestore = false). Read by ./cicd/."

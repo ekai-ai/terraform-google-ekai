@@ -329,7 +329,6 @@ resource "google_secret_manager_secret_version" "app_secret" {
 # (non-functional) blank defaults to fill in.
 locals {
   erd_filestore = var.erd_filestore_storage_class != ""
-  erd_gcs_fuse  = var.enable_erd_gcs_fuse && !local.erd_filestore
   erd_filestore_values = local.erd_filestore ? tomap({
     accessMode = "ReadWriteMany"
     claimName  = "ekai-erd-filestore-workspace-pvc"
@@ -344,34 +343,18 @@ locals {
     secretName         = "ekai-${var.env}"
     serviceAccountName = "ekai-app-sa"
     erd = {
-      # bucketName comes from the combined root's own output (see
-      # modules/platform/outputs.tf's erd_workspace_bucket_name) instead of
-      # being reconstructed here from var.env -- that used to require the
-      # two layers' naming logic to be kept in sync by hand, and silently
-      # diverged the moment the bucket name picked up a project_id suffix
-      # for global uniqueness.
-      #
-      # Field-level ternaries, not one big object ternary -- Terraform
-      # requires both branches of a conditional to share one type, and an
-      # object with a "gcsFuse" attribute vs. one without isn't unifiable.
-      # null is valid for any type, so it works per-field instead.
-      #
-      # Filestore wins over enable_erd_gcs_fuse: the combined root refuses
-      # to create both, so a set class name means the env chose Filestore.
-      # Its PVC gets its own name, so switching an env from GCS FUSE or a
-      # ReadWriteOnce PVC creates a new claim instead of colliding with the
-      # old one, which ArgoCD never prunes. size is the Basic HDD minimum.
+      # The StorageClass name comes from the combined root's state, so a set
+      # name means the env chose Filestore. The Filestore PVC gets its own
+      # name, so switching an env from a ReadWriteOnce PVC creates a new
+      # claim instead of colliding with the old one, which ArgoCD never
+      # prunes. size is the Basic HDD minimum.
       #
       # The Filestore keys are merged in, not set to null when off: a null
       # in Helm values deletes the chart's own default for that key, and
       # the chart rejects a missing accessMode.
       workspace = merge({
-        type             = local.erd_gcs_fuse ? "gcsFuse" : "pvc"
-        storageClassName = local.erd_filestore ? var.erd_filestore_storage_class : (local.erd_gcs_fuse ? null : var.erd_storage_class)
-        gcsFuse = local.erd_gcs_fuse ? {
-          bucketName         = var.erd_workspace_bucket_name
-          serviceAccountName = "ekai-erd-sa"
-        } : null
+        type             = "pvc"
+        storageClassName = local.erd_filestore ? var.erd_filestore_storage_class : var.erd_storage_class
       }, local.erd_filestore_values)
     }
     ingress = {
