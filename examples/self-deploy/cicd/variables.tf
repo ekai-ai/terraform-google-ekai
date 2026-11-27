@@ -67,15 +67,9 @@ variable "image_tag" {
 }
 
 variable "erd_storage_class" {
-  description = "StorageClass for ERD's workspace PVC (cicd_provider = \"none\" only) — passed through as the ekai-saas chart's erd.workspace.storageClassName. Ignored when enable_erd_gcs_fuse = true."
+  description = "StorageClass for ERD's workspace PVC (cicd_provider = \"none\" only) — passed through as the ekai-saas chart's erd.workspace.storageClassName. Used only when enable_erd_filestore = false in the root layer."
   type        = string
   default     = "standard-rwo"
-}
-
-variable "enable_erd_gcs_fuse" {
-  description = "Back ERD's shared workspace with a GCS bucket (via the GCS FUSE CSI driver) instead of a ReadWriteOnce PVC (cicd_provider = \"none\" only). Avoids Multi-Attach scheduling deadlocks when erd/erd-worker/document-worker/profile-worker land on different nodes. Requires the platform submodule's GCS bucket + Workload Identity SA (created unconditionally there). Defaults to true -- this repo is GCP-only, so there's no cross-cloud reason to keep the older PVC path as the default here."
-  type        = bool
-  default     = true
 }
 
 variable "ingress_class_name" {

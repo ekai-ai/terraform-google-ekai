@@ -157,70 +157,44 @@ resource "google_service_account_iam_member" "ekai_app_workload_identity" {
   member             = "serviceAccount:${var.project_id}.svc.id.goog[ekai-saas/ekai-app-sa]"
 }
 
-# ── ERD workspace GCS FUSE bucket + Workload Identity ────────────────────────
-# erd/erd-worker/document-worker/profile-worker share one scratch workspace.
-# A ReadWriteOnce PVC only ever attaches to one node at a time -- any rollout
-# that spreads those pods across nodes deadlocks with Multi-Attach errors
-# (confirmed live). GCS FUSE mounts a real bucket instead, with no
-# node-attach limit. Same fix already proven on Ekai's own "beta" env.
+# ── ERD workspace Filestore StorageClass ─────────────────────────────────────
+# erd/erd-worker/document-worker/profile-worker share one workspace. A
+# ReadWriteOnce PVC attaches to one node at a time, so any rollout that
+# spreads those pods across nodes deadlocks with Multi-Attach errors
+# (confirmed live). The cicd layer instead requests a ReadWriteMany PVC of
+# this class, and GKE's Filestore CSI driver (enabled by the cluster
+# submodule) creates a Filestore instance for it. Filestore is NFS, so every
+# node mounts it at the same time, and file locking and renames behave like
+# a local disk.
 #
-# Gated on enable_erd_gcs_fuse -- previously created unconditionally even
-# when a customer chose the PVC workspace type (cicd layer's same-named
-# variable set to false), leaving an unused bucket + SA + IAM grants behind
-# for no reason.
+# GKE's built-in "standard-rwx" class attaches instances to the "default"
+# VPC, but this cluster runs in its own VPC, so this class names it.
 #
-# Bucket name includes project_id for the same reason the state bucket's
-# name does (see cicd/main.tf's state bucket) -- GCS bucket names are unique
-# across ALL of GCP, not per-project, and "ekai-${var.env}-erd-workspace"
-# alone collides the moment two different customers use the same env name.
-resource "google_storage_bucket" "erd_workspace" {
-  count                       = var.enable_erd_gcs_fuse ? 1 : 0
-  project                     = var.project_id
-  name                        = "ekai-${var.env}-erd-workspace-${var.project_id}"
-  location                    = var.region
-  storage_class               = "STANDARD"
-  uniform_bucket_level_access = true
-}
+# "standard" is the Basic HDD tier: 1 TiB minimum, the cheapest tier.
+#
+# Retain: the Filestore instance stays when its PVC is deleted, the same way
+# ArgoCD never prunes the PVC (Prune=false in the chart). The instance is not
+# in Terraform state, so `terraform destroy` does not delete it either.
+# Delete it by hand in the Filestore console after a teardown.
+resource "kubernetes_storage_class_v1" "erd_filestore" {
+  count = var.enable_erd_filestore ? 1 : 0
 
-resource "google_service_account" "erd_gcsfuse" {
-  count        = var.enable_erd_gcs_fuse ? 1 : 0
-  project      = var.project_id
-  account_id   = "${var.env}-erd-gcsfuse-sa"
-  display_name = "ERD workspace GCS FUSE Workload Identity SA (${var.env})"
-}
-
-resource "google_storage_bucket_iam_member" "erd_gcsfuse" {
-  count  = var.enable_erd_gcs_fuse ? 1 : 0
-  bucket = google_storage_bucket.erd_workspace[0].name
-  role   = "roles/storage.objectUser"
-  member = "serviceAccount:${google_service_account.erd_gcsfuse[0].email}"
-}
-
-resource "google_service_account_iam_member" "erd_gcsfuse_workload_identity" {
-  count              = var.enable_erd_gcs_fuse ? 1 : 0
-  service_account_id = google_service_account.erd_gcsfuse[0].name
-  role               = "roles/iam.workloadIdentityUser"
-  member             = "serviceAccount:${var.project_id}.svc.id.goog[ekai-saas/ekai-erd-sa]"
-}
-
-# Same pattern as kubernetes_service_account.ekai_app above -- created here
-# (not by the chart) so it exists before ArgoCD syncs the ERD deployments
-# that reference it. Created either way (the chart's ERD deployment sets
-# serviceAccountName: ekai-erd-sa regardless of workspace type) -- only the
-# Workload Identity annotation binding it to the GCS-FUSE SA is conditional.
-resource "kubernetes_service_account" "ekai_erd" {
   metadata {
-    name      = "ekai-erd-sa"
-    namespace = kubernetes_namespace.ekai_saas.metadata[0].name
+    name = "ekai-erd-filestore-rwx"
     labels = {
-      app     = "ekai-erd"
       managed = "terraform"
     }
-    annotations = var.enable_erd_gcs_fuse ? {
-      "iam.gke.io/gcp-service-account" = google_service_account.erd_gcsfuse[0].email
-    } : {}
   }
-  depends_on = [kubernetes_namespace.ekai_saas]
+
+  storage_provisioner    = "filestore.csi.storage.gke.io"
+  reclaim_policy         = "Retain"
+  volume_binding_mode    = "WaitForFirstConsumer"
+  allow_volume_expansion = true
+
+  parameters = {
+    tier    = "standard"
+    network = var.vpc_name
+  }
 }
 
 # ── External Secrets Operator (Workload Identity + Helm + ClusterSecretStore) ─

@@ -361,8 +361,8 @@ variable "neo4j_memory_limit" {
   default = "4Gi"
 }
 
-variable "enable_erd_gcs_fuse" {
-  description = "Create the GCS bucket + Workload Identity SA backing ERD's shared workspace. Must match the same-named variable passed to the cicd layer's apply."
+variable "enable_erd_filestore" {
+  description = "Back ERD's shared workspace with Filestore, a ReadWriteMany NFS volume. When false, it is a ReadWriteOnce PVC. The cicd layer picks it up from this state's outputs."
   type        = bool
   default     = true
 }

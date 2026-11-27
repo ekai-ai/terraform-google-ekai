@@ -157,3 +157,9 @@ variable "master_ipv4_cidr_block" {
   type        = string
   default     = "172.16.0.0/28"
 }
+
+variable "enable_erd_filestore" {
+  description = "Enable GKE's Filestore CSI driver, so the platform submodule can back ERD's workspace with Filestore. Wired from the root's same-named variable."
+  type        = bool
+  default     = true
+}

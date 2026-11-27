@@ -219,11 +219,16 @@ variable "neo4j_memory_limit" {
   default = "4Gi"
 }
 
-# ── ERD GCS FUSE workspace ──────────────────────────────────────────────────
-variable "enable_erd_gcs_fuse" {
-  description = "Create the GCS bucket + Workload Identity SA backing ERD's shared workspace. Must match the cicd layer's same-named variable -- that layer decides whether the chart actually mounts it (gcsFuse vs PVC); this one decides whether the bucket/SA exist at all."
+# ── ERD Filestore workspace ─────────────────────────────────────────────────
+variable "enable_erd_filestore" {
+  description = "Create a Filestore StorageClass for ERD's shared workspace. The cicd layer reads the class name from this layer's erd_filestore_storage_class output and mounts the workspace as a ReadWriteMany PVC. When false, the workspace is a ReadWriteOnce PVC."
   type        = bool
   default     = true
+}
+
+variable "vpc_name" {
+  description = "VPC that dynamically provisioned Filestore instances attach to. Must be the cluster's VPC, so the nodes can reach the instances. Wired from the bootstrap submodule's output."
+  type        = string
 }
 
 variable "reflector_chart_version" {

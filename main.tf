@@ -71,6 +71,7 @@ module "cluster" {
   pipelines                  = var.pipelines
   cloudbuild_sa_email        = var.cloudbuild_sa_email
   master_ipv4_cidr_block     = var.master_ipv4_cidr_block
+  enable_erd_filestore       = var.enable_erd_filestore
 
   # formerly `data "terraform_remote_state" "bootstrap"` in the cluster layer's main.tf
   vpc_name            = module.bootstrap.vpc_name
@@ -118,7 +119,8 @@ module "platform" {
   neo4j_storage_class          = var.neo4j_storage_class
   neo4j_memory_request         = var.neo4j_memory_request
   neo4j_memory_limit           = var.neo4j_memory_limit
-  enable_erd_gcs_fuse          = var.enable_erd_gcs_fuse
+  enable_erd_filestore         = var.enable_erd_filestore
+  vpc_name                     = module.bootstrap.vpc_name
 
   # formerly `data "terraform_remote_state" "cluster"` in the platform layer's main.tf
   cluster_name = module.cluster.cluster_name

@@ -172,13 +172,8 @@ variable "enable_deletion_protection" {
   default     = false
 }
 
-# Also declared in cicd/variables.tf (chart values only use it there) -- this
-# copy gates whether THIS layer's platform submodule actually provisions the
-# GCS bucket + Workload Identity SA at all. Previously only the cicd copy
-# existed, so a customer apply against this root layer silently ignored the
-# flag entirely and always created the bucket/SA regardless of their choice.
-variable "enable_erd_gcs_fuse" {
-  description = "Back ERD's shared workspace with a GCS bucket (via GCS FUSE) instead of a PVC. Must match the same-named variable passed to the cicd layer's apply."
+variable "enable_erd_filestore" {
+  description = "Back ERD's shared workspace with Filestore, a ReadWriteMany NFS volume. Enables GKE's Filestore CSI driver and creates a StorageClass. Each install gets one Basic HDD instance of 1 TiB, the tier minimum. Needs the Filestore API (file.googleapis.com) and an ekai-saas chart that has erd.workspace.accessMode. When false, the workspace is a ReadWriteOnce PVC (erd_storage_class in the cicd layer), and the four ERD pods prefer one node."
   type        = bool
   default     = true
 }
