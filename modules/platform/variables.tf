@@ -226,6 +226,18 @@ variable "enable_erd_gcs_fuse" {
   default     = true
 }
 
+# ── ERD Filestore workspace ─────────────────────────────────────────────────
+variable "enable_erd_filestore" {
+  description = "Create a Filestore StorageClass for ERD's shared workspace. The cicd layer reads the class name from this layer's erd_filestore_storage_class output and mounts the workspace as a ReadWriteMany PVC. Cannot be combined with enable_erd_gcs_fuse."
+  type        = bool
+  default     = false
+}
+
+variable "vpc_name" {
+  description = "VPC that dynamically provisioned Filestore instances attach to. Must be the cluster's VPC, so the nodes can reach the instances. Wired from the bootstrap submodule's output."
+  type        = string
+}
+
 variable "reflector_chart_version" {
   description = "emberstack reflector Helm chart version -- mirrors the wildcard TLS Secret into other namespaces."
   type        = string

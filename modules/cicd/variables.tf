@@ -67,6 +67,12 @@ variable "erd_workspace_bucket_name" {
   default     = ""
 }
 
+variable "erd_filestore_storage_class" {
+  description = "Filestore StorageClass for ERD's workspace, read from the combined root's state (empty when enable_erd_filestore = false there). When set, the chart mounts the workspace as a ReadWriteMany PVC of this class, and enable_erd_gcs_fuse is ignored."
+  type        = string
+  default     = ""
+}
+
 variable "ingress_class_name" {
   description = "Ingress controller class for the ekai-saas chart (cicd_provider = \"none\" only)."
   type        = string

@@ -120,6 +120,12 @@ helm_chart_version  = "*"
 # spreads those pods across nodes can deadlock with Multi-Attach errors.
 # Set enable_erd_gcs_fuse = false below only if you need the old PVC
 # behavior for some reason.
+#
+# To use Filestore (a ReadWriteMany NFS volume) instead of the bucket, set
+# both lines below. Each install then pays for one 1 TiB Basic HDD instance.
+# The instance outlives `terraform destroy`: delete it by hand afterwards.
+# enable_erd_gcs_fuse  = false
+# enable_erd_filestore = true
 
 # dns_zone_name intentionally left unset -- defaults to "<env>-zone" (created
 # by the bootstrap submodule), so a different env name doesn't require also

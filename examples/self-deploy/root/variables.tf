@@ -366,3 +366,9 @@ variable "enable_erd_gcs_fuse" {
   type        = bool
   default     = true
 }
+
+variable "enable_erd_filestore" {
+  description = "Back ERD's shared workspace with Filestore instead of a GCS bucket. Set enable_erd_gcs_fuse = false with it. The cicd layer picks it up from this state's outputs."
+  type        = bool
+  default     = false
+}

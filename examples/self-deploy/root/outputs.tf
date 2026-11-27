@@ -125,3 +125,8 @@ output "erd_workspace_bucket_name" {
   description = "ERD workspace GCS bucket name (empty when enable_erd_gcs_fuse = false). Read by the cicd module instead of reconstructing the name independently."
   value       = module.infra.erd_workspace_bucket_name
 }
+
+output "erd_filestore_storage_class" {
+  description = "Filestore StorageClass for ERD's workspace (empty when enable_erd_filestore = false). Read by the cicd module."
+  value       = module.infra.erd_filestore_storage_class
+}

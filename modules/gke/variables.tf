@@ -78,3 +78,9 @@ variable "enable_deletion_protection" {
   type        = bool
   default     = false
 }
+
+variable "enable_filestore_csi_driver" {
+  description = "Enable GKE's Filestore CSI driver addon, which provisions Filestore instances for ReadWriteMany PVCs. Needs the Filestore API (file.googleapis.com) enabled in the project."
+  type        = bool
+  default     = false
+}

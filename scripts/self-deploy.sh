@@ -135,6 +135,9 @@ REQUIRED_APIS=(
   # yet and the IAM grant fails with "Service account ... does not exist"
   # (confirmed live, Secunetics GCP feedback, 2026-10).
   cloudbuild.googleapis.com
+  # GKE's Filestore CSI driver needs it when enable_erd_filestore = true.
+  # Enabling it costs nothing while no instance exists.
+  file.googleapis.com
 )
 echo "==> Enabling: ${REQUIRED_APIS[*]}"
 gcloud services enable "${REQUIRED_APIS[@]}" --project="${PROJECT_ID}"

@@ -183,6 +183,12 @@ variable "enable_erd_gcs_fuse" {
   default     = true
 }
 
+variable "enable_erd_filestore" {
+  description = "Back ERD's shared workspace with Filestore (a ReadWriteMany NFS volume) instead of a GCS bucket. Set enable_erd_gcs_fuse = false with it. Enables GKE's Filestore CSI driver and creates a StorageClass. Each install gets one Basic HDD instance of 1 TiB, the tier minimum. Needs the Filestore API (file.googleapis.com) and an ekai-saas chart that has erd.workspace.accessMode."
+  type        = bool
+  default     = false
+}
+
 variable "pipelines" {
   description = <<-EOT
     Map of logical service names to pipeline metadata.

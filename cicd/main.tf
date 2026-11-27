@@ -72,4 +72,7 @@ module "cicd" {
   neo4j_credentials               = data.terraform_remote_state.combined.outputs.neo4j_credentials
   cluster_secret_store_name       = data.terraform_remote_state.combined.outputs.cluster_secret_store_name
   erd_workspace_bucket_name       = data.terraform_remote_state.combined.outputs.erd_workspace_bucket_name
+
+  # try(): state written before Filestore support has no such output.
+  erd_filestore_storage_class = try(data.terraform_remote_state.combined.outputs.erd_filestore_storage_class, "")
 }

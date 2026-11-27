@@ -328,6 +328,14 @@ resource "google_secret_manager_secret_version" "app_secret" {
 # what this Terraform layer already knows — nothing left for the chart's own
 # (non-functional) blank defaults to fill in.
 locals {
+  erd_filestore = var.erd_filestore_storage_class != ""
+  erd_gcs_fuse  = var.enable_erd_gcs_fuse && !local.erd_filestore
+  erd_filestore_values = local.erd_filestore ? tomap({
+    accessMode = "ReadWriteMany"
+    claimName  = "ekai-erd-filestore-workspace-pvc"
+    size       = "1Ti"
+  }) : tomap({})
+
   self_service_helm_values = local.self_service ? yamlencode({
     namespace          = var.ekai_namespace
     dnsZone            = var.dns_zone
@@ -347,14 +355,24 @@ locals {
       # requires both branches of a conditional to share one type, and an
       # object with a "gcsFuse" attribute vs. one without isn't unifiable.
       # null is valid for any type, so it works per-field instead.
-      workspace = {
-        type             = var.enable_erd_gcs_fuse ? "gcsFuse" : "pvc"
-        storageClassName = var.enable_erd_gcs_fuse ? null : var.erd_storage_class
-        gcsFuse = var.enable_erd_gcs_fuse ? {
+      #
+      # Filestore wins over enable_erd_gcs_fuse: the combined root refuses
+      # to create both, so a set class name means the env chose Filestore.
+      # Its PVC gets its own name, so switching an env from GCS FUSE or a
+      # ReadWriteOnce PVC creates a new claim instead of colliding with the
+      # old one, which ArgoCD never prunes. size is the Basic HDD minimum.
+      #
+      # The Filestore keys are merged in, not set to null when off: a null
+      # in Helm values deletes the chart's own default for that key, and
+      # the chart rejects a missing accessMode.
+      workspace = merge({
+        type             = local.erd_gcs_fuse ? "gcsFuse" : "pvc"
+        storageClassName = local.erd_filestore ? var.erd_filestore_storage_class : (local.erd_gcs_fuse ? null : var.erd_storage_class)
+        gcsFuse = local.erd_gcs_fuse ? {
           bucketName         = var.erd_workspace_bucket_name
           serviceAccountName = "ekai-erd-sa"
         } : null
-      }
+      }, local.erd_filestore_values)
     }
     ingress = {
       className = var.ingress_class_name

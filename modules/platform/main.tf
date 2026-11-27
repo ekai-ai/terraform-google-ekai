@@ -223,6 +223,50 @@ resource "kubernetes_service_account" "ekai_erd" {
   depends_on = [kubernetes_namespace.ekai_saas]
 }
 
+# ── ERD workspace Filestore StorageClass ─────────────────────────────────────
+# The other way to give the four ERD pods a workspace that every node can
+# mount at the same time. The cicd layer requests a ReadWriteMany PVC of this
+# class, and GKE's Filestore CSI driver (enabled by the cluster submodule)
+# creates a Filestore instance for it. Unlike GCS FUSE, Filestore is a real
+# NFS file system, so file locking and renames behave like a local disk.
+#
+# GKE's built-in "standard-rwx" class attaches instances to the "default"
+# VPC, but this cluster runs in its own VPC, so this class names it.
+#
+# "standard" is the Basic HDD tier: 1 TiB minimum, the cheapest tier.
+#
+# Retain: the Filestore instance stays when its PVC is deleted, the same way
+# ArgoCD never prunes the PVC (Prune=false in the chart). The instance is not
+# in Terraform state, so `terraform destroy` does not delete it either.
+# Delete it by hand in the Filestore console after a teardown.
+resource "kubernetes_storage_class_v1" "erd_filestore" {
+  count = var.enable_erd_filestore ? 1 : 0
+
+  metadata {
+    name = "ekai-erd-filestore-rwx"
+    labels = {
+      managed = "terraform"
+    }
+  }
+
+  storage_provisioner    = "filestore.csi.storage.gke.io"
+  reclaim_policy         = "Retain"
+  volume_binding_mode    = "WaitForFirstConsumer"
+  allow_volume_expansion = true
+
+  parameters = {
+    tier    = "standard"
+    network = var.vpc_name
+  }
+
+  lifecycle {
+    precondition {
+      condition     = !var.enable_erd_gcs_fuse
+      error_message = "enable_erd_filestore and enable_erd_gcs_fuse are both true. ERD's workspace uses one of them: set enable_erd_gcs_fuse = false to use Filestore."
+    }
+  }
+}
+
 # ── External Secrets Operator (Workload Identity + Helm + ClusterSecretStore) ─
 # GSA is bound to the ESO K8s SA via Workload Identity Federation.
 # No service-account key is stored in the cluster.

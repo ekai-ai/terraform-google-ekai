@@ -115,4 +115,5 @@ module "infra" {
   neo4j_memory_request         = var.neo4j_memory_request
   neo4j_memory_limit           = var.neo4j_memory_limit
   enable_erd_gcs_fuse          = var.enable_erd_gcs_fuse
+  enable_erd_filestore         = var.enable_erd_filestore
 }

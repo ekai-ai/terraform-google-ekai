@@ -75,6 +75,13 @@ resource "google_container_cluster" "main" {
     gcs_fuse_csi_driver_config {
       enabled = true
     }
+
+    # Provisions Filestore instances for ReadWriteMany PVCs. Only on when
+    # ERD's workspace uses Filestore (enable_filestore_csi_driver), because
+    # the driver needs the Filestore API (file.googleapis.com) enabled.
+    gcp_filestore_csi_driver_config {
+      enabled = var.enable_filestore_csi_driver
+    }
   }
 
   # Workload Identity
